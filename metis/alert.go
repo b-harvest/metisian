@@ -552,14 +552,6 @@ func (c *MetisianClient) watch() {
 									&id)
 							} else if recommitAlarm {
 								recommitAlarm = false
-
-								id := seq.Address + "respan"
-								c.alert(
-									seq.name,
-									fmt.Sprintf("❌ sequencer %20s (%s) has recommited!! please check your sequencer status", seq.name, seq.Address),
-									"critical",
-									true,
-									&id)
 							}
 
 							if !recommitAlarm {

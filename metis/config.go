@@ -22,84 +22,86 @@ type Config struct {
 	NodeInfos []NodeInfo `toml:"node_infos"`
 	ChainId   string     `toml:"chain_id"`
 
+	// sequencer specific overrides for alert destinations.
 	// Pagerduty configuration values
 	Pagerduty PDConfig `toml:"pagerduty"`
 	// Discord webhook information
 	Discord DiscordConfig `toml:"discord"`
-	// Telegram api information
+	// Telegram webhook information
 	Telegram TeleConfig `toml:"telegram"`
 	// Slack webhook information
 	Slack SlackConfig `toml:"slack"`
-
-	Alerts AlertConfig `toml:"managerAlerts"`
 }
 
 type AlertConfig struct {
+
 	// How many missed blocks are acceptable before alerting
-	ConsecutiveMissed int `yaml:"consecutive_missed"`
+	ConsecutiveMissed int `toml:"consecutive_missed"`
 	// Tag for pagerduty to set the alert priority
-	ConsecutivePriority string `yaml:"consecutive_priority"`
+	ConsecutivePriority string `toml:"consecutive_priority"`
 	// Whether to alert on consecutive missed blocks
-	ConsecutiveAlerts bool `yaml:"consecutive_enabled"`
+	ConsecutiveAlerts bool `toml:"consecutive_enabled"`
 
 	// Window is how many blocks missed as a percentage of the slashing window to trigger an alert
-	Window int `yaml:"percentage_missed"`
+	Window int `toml:"percentage_missed"`
 	// PercentagePriority is a tag for pagerduty to route on priority
-	PercentagePriority string `yaml:"percentage_priority"`
+	PercentagePriority string `toml:"percentage_priority"`
 	// PercentageAlerts is whether to alert on percentage based misses
-	PercentageAlerts bool `yaml:"percentage_enabled"`
+	PercentageAlerts bool `toml:"percentage_enabled"`
 
 	// AlertIfInactive decides if tenderduty send an alert if the validator is not in the active set?
-	AlertIfInactive bool `yaml:"alert_if_inactive"`
+	AlertIfInactive bool `toml:"alert_if_inactive"`
 
-	// PagerdutyAlerts: Should pagerduty alerts be sent for this sequencer? Both 'config.pagerduty.enabled: yes' and this must be set.
-	//Deprecated: use Pagerduty.Enabled instead
-	PagerdutyAlerts bool `yaml:"pagerduty_alerts"`
-	// DiscordAlerts: Should discord alerts be sent for this sequencer? Both 'config.discord.enabled: yes' and this must be set.
-	//Deprecated: use Discord.Enabled instead
-	DiscordAlerts bool `yaml:"discord_alerts"`
-	// TelegramAlerts: Should telegram alerts be sent for this sequencer? Both 'config.telegram.enabled: yes' and this must be set.
-	//Deprecated: use Telegram.Enabled instead
-	TelegramAlerts bool `yaml:"telegram_alerts"`
+	// If true, this sequencer will use parent alert configuration.
+	//
+	// e.g)
+	// chain_id = "sepolia-1"
+	//
+	// [telegram]
+	// enable = true
+	// ...
+	// [[sequencers]]
+	// use_parent = true
+	UseParent bool `toml:"use_parent"`
 
 	// sequencer specific overrides for alert destinations.
 	// Pagerduty configuration values
-	Pagerduty PDConfig `yaml:"pagerduty"`
+	Pagerduty PDConfig `toml:"pagerduty"`
 	// Discord webhook information
-	Discord DiscordConfig `yaml:"discord"`
+	Discord DiscordConfig `toml:"discord"`
 	// Telegram webhook information
-	Telegram TeleConfig `yaml:"telegram"`
+	Telegram TeleConfig `toml:"telegram"`
 	// Slack webhook information
-	Slack SlackConfig `yaml:"slack"`
+	Slack SlackConfig `toml:"slack"`
 }
 
 // PDConfig is the information required to send alerts to PagerDuty
 type PDConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	ApiKey          string `yaml:"api_key"`
-	DefaultSeverity string `yaml:"default_severity"`
+	Enabled         bool   `toml:"enabled"`
+	ApiKey          string `toml:"api_key"`
+	DefaultSeverity string `toml:"default_severity"`
 }
 
 // DiscordConfig holds the information needed to publish to a Discord webhook for sending alerts
 type DiscordConfig struct {
-	Enabled  bool     `yaml:"enabled"`
-	Webhook  string   `yaml:"webhook"`
-	Mentions []string `yaml:"mentions"`
+	Enabled  bool     `toml:"enabled"`
+	Webhook  string   `toml:"webhook"`
+	Mentions []string `toml:"mentions"`
 }
 
 // TeleConfig holds the information needed to publish to a Telegram webhook for sending alerts
 type TeleConfig struct {
-	Enabled  bool     `yaml:"enabled"`
-	ApiKey   string   `yaml:"api_key"`
-	Channel  string   `yaml:"channel"`
-	Mentions []string `yaml:"mentions"`
+	Enabled  bool     `toml:"enabled"`
+	ApiKey   string   `toml:"api_key"`
+	Channel  string   `toml:"channel"`
+	Mentions []string `toml:"mentions"`
 }
 
 // SlackConfig holds the information needed to publish to a Slack webhook for sending alerts
 type SlackConfig struct {
-	Enabled  bool     `yaml:"enabled"`
-	Webhook  string   `yaml:"webhook"`
-	Mentions []string `yaml:"mentions"`
+	Enabled  bool     `toml:"enabled"`
+	Webhook  string   `toml:"webhook"`
+	Mentions []string `toml:"mentions"`
 }
 
 type SequencerInfo struct {
@@ -108,7 +110,7 @@ type SequencerInfo struct {
 	Name    string `toml:"Name"`
 
 	// Alerts defines the types of alerts to send for this sequencer.
-	Alerts AlertConfig `yaml:"alerts"`
+	Alerts AlertConfig `toml:"alerts"`
 }
 
 func LoadConfig(filePath, token string) (*Config, error) {

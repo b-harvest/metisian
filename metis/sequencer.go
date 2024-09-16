@@ -26,7 +26,7 @@ type Sequencer struct {
 	statNewSeqData *SeqData
 
 	// Alerts defines the types of alerts to send for this sequencer.
-	Alerts AlertConfig `yaml:"alerts"`
+	Alerts AlertConfig
 }
 
 func NewSequencer(i SequencerInfo) Sequencer {

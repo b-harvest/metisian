@@ -30,9 +30,9 @@ type MetisianClient struct {
 	noNodes bool
 	// NodeDownMin controls how long we wait before sending an alert that a node is not responding or has
 	// fallen behind.
-	NodeDownMin int `yaml:"node_down_alert_minutes"`
+	NodeDownMin int `toml:"node_down_alert_minutes"`
 	// NodeDownSeverity controls the Pagerduty severity when notifying if a node is down.
-	NodeDownSeverity string `yaml:"node_down_alert_severity"`
+	NodeDownSeverity string `toml:"node_down_alert_severity"`
 
 	client *MetisClient
 
@@ -94,6 +94,13 @@ func NewClient(cfg *Config) (*MetisianClient, error) {
 	// configure sequencers
 	client.Sequencers = map[string]*Sequencer{}
 	for _, seqInfo := range cfg.Sequencers {
+		if seqInfo.Alerts.UseParent {
+			seqInfo.Alerts.Pagerduty = cfg.Pagerduty
+			seqInfo.Alerts.Discord = cfg.Discord
+			seqInfo.Alerts.Telegram = cfg.Telegram
+			seqInfo.Alerts.Slack = cfg.Slack
+		}
+
 		seq := NewSequencer(seqInfo)
 		client.Sequencers[seqInfo.Name] = &seq
 	}
@@ -101,7 +108,12 @@ func NewClient(cfg *Config) (*MetisianClient, error) {
 		SequencerInfo{
 			Address: MetisianName,
 			Name:    MetisianName,
-			Alerts:  cfg.Alerts,
+			Alerts: AlertConfig{
+				Pagerduty: cfg.Pagerduty,
+				Discord:   cfg.Discord,
+				Telegram:  cfg.Telegram,
+				Slack:     cfg.Slack,
+			},
 		})
 	client.Sequencers[MetisianName] = &manager
 
