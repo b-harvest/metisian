@@ -72,7 +72,7 @@ func main() {
 		if n == metis.MetisianName {
 			continue
 		}
-		seqAddrsMsg = fmt.Sprintf("%s[%s] %s\n", seqAddrsMsg, n, seq.Address)
+		seqAddrsMsg = fmt.Sprintf("%s✅ [%15.15s] %s\n", seqAddrsMsg, n, seq.Address)
 	}
 	log.Info(fmt.Sprintf("Starting monitor metis sequencers...\n%s", seqAddrsMsg))
 
