@@ -1,0 +1,69 @@
+chain_id = "sepolia-1"
+node_down_alert_minutes = 3
+node_down_alert_severity = "info"
+
+[telegram]
+enable = true
+api_key = "XXXXXXXX"
+channel = "XXXXXXXX"
+
+[[sequencers]]
+name = "TEB(B-Harvest)"
+address = "0x81fc9d26d6b234f9cc6a84bcfefc679cb64a227a"
+use_parent = true
+
+[[sequencers]]
+name = "Genesis-0"
+address = "0x3525fdb496c612e4cde817a2567081470b7a2ecb"
+use_parent = true
+
+[[sequencers]]
+name = "Genesis-1"
+address = "0x3aea46bad8653b4f7a6e7b8147f966db9d1c2587"
+use_parent = true
+
+[[sequencers]]
+name = "Genesis-2"
+address = "0xa02e8a273d0e94f60eb32124991479295bdd969f"
+use_parent = true
+
+[[sequencers]]
+name = "Genesis-3"
+address = "0x94c658e1423faa805b3e09f9e124e1c97c3d3721"
+use_parent = true
+
+[[sequencers]]
+name = "ENKI0"
+address = "0x552c7ae340822ed786c2633f9f9f0b754c3cfb2f"
+use_parent = true
+
+[[sequencers]]
+name = "ArtemisSuperNode"
+address = "0x3c8984d9ae7554ead68602ae455f6f7c61ddbb6b"
+use_parent = true
+
+[[sequencers]]
+name = "InnovateTech"
+address = "0x1939c42e97378bb4da4dc925d4f3a3920051ac93"
+use_parent = true
+
+[[sequencers]]
+name = "OKXEarn2"
+address = "0x4cd3c5d979c316b9b55ef9fcf219c309617910cf"
+use_parent = true
+
+[[sequencers]]
+name = "HashKey Cloud 2"
+address = "0x27ddbe56fcea4db6261ccfda1807554a755473f9"
+use_parent = true
+
+[[sequencers]]
+name = "SNZPool"
+address = "0xf13418477c27b4846a5750718e41bb0cf6dc03f0"
+use_parent = true
+
+[[node_infos]]
+api_url = ""
+rpc_url = ""
+ws_url = ""
+alert_if_down = false
