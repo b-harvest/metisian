@@ -42,16 +42,6 @@ type AlertConfig struct {
 	// Whether to alert on consecutive missed blocks
 	ConsecutiveAlerts bool `toml:"consecutive_enabled"`
 
-	// Window is how many blocks missed as a percentage of the slashing window to trigger an alert
-	Window int `toml:"percentage_missed"`
-	// PercentagePriority is a tag for pagerduty to route on priority
-	PercentagePriority string `toml:"percentage_priority"`
-	// PercentageAlerts is whether to alert on percentage based misses
-	PercentageAlerts bool `toml:"percentage_enabled"`
-
-	// AlertIfInactive decides if tenderduty send an alert if the validator is not in the active set?
-	AlertIfInactive bool `toml:"alert_if_inactive"`
-
 	// If true, this sequencer will use parent alert configuration.
 	//
 	// e.g)
