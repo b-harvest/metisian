@@ -13,6 +13,7 @@ import (
 	themistypes "github.com/metis-seq/themis/types"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -296,7 +297,7 @@ func NewMetisClient(nodeInfo NodeInfo) (*MetisClient, error) {
 
 	mc.wsConn = conn
 
-	mc.seqSetClient = *graphql.NewClient(SEQUENCER_SET_URL)
+	mc.seqSetClient = *graphql.NewClient(SEQUENCER_SET_URL, graphql.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}))
 
 	return &mc, nil
 }

@@ -96,7 +96,8 @@ query ($skip: Int, $first: Int, $address: String) {
 
 					var respData SeqData
 					if err = c.client.seqSetClient.Run(ctx, req, &respData); err != nil {
-						log.Fatal(err)
+						log.Warn(fmt.Sprintf("%v", err))
+						return
 					}
 
 					for _, epoch := range respData.Epoches {
