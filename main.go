@@ -68,10 +68,7 @@ func main() {
 	go client.Run()
 
 	var seqAddrsMsg string
-	for n, seq := range client.Sequencers {
-		if n == metis.MetisianName {
-			continue
-		}
+	for n, seq := range client.GetSequencers() {
 		seqAddrsMsg = fmt.Sprintf("%s✅ [%15.15s] %s\n", seqAddrsMsg, n, seq.Address)
 	}
 	log.Info(fmt.Sprintf("Starting monitor metis sequencers...\n%s", seqAddrsMsg))

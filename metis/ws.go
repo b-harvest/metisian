@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/b-harvest/metisian/log"
+	dash "github.com/b-harvest/metisian/metis/dashboard"
 	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/types"
 	"strconv"
@@ -99,11 +100,12 @@ func (c *MetisianClient) WsRun() {
 		var signState StatusType = -1
 		for {
 			select {
-			case result := <-resultChan:
-				for _, seq := range c.Sequencers {
-					update := result[seq.Address]
+			case resultMap := <-resultChan:
+				for seqName, result := range resultMap {
+					seq := c.Sequencers[seqName]
+					update := result
 					if update.Final && update.Height%20 == 0 {
-						log.ErrorDynamicArgs(fmt.Sprintf("🧊 block %d", update.Height))
+						log.Info(fmt.Sprintf("🧊 block %d", update.Height))
 					}
 
 					if update.Status > signState {
@@ -149,6 +151,21 @@ func (c *MetisianClient) WsRun() {
 								healthyNodes += 1
 							}
 						}
+
+						seq.activeAlerts = alarms.getCount(seq.name)
+						if c.EnableDash {
+							log.Debug(fmt.Sprintf("Insert event for sequencer %20s (%s)", seq.name, seq.Address))
+							c.updateChan <- &dash.SequencerStatus{
+								MsgType:      "status",
+								Name:         seq.name,
+								Address:      seq.Address,
+								Jailed:       seq.valInfo.Jailed,
+								ActiveAlerts: seq.activeAlerts,
+								LastError:    info,
+								Blocks:       seq.blocksResults,
+							}
+						}
+
 						switch {
 						case seq.valInfo.Jailed:
 							info += "- validator is jailed\n"
@@ -165,17 +182,9 @@ func (c *MetisianClient) WsRun() {
 	voteChan := make(chan *WsReply)
 	blockChan := make(chan *WsReply)
 
-	var addresses []string
-	for _, seq := range c.Sequencers {
-		if seq.name == MetisianName {
-			continue
-		}
-		addresses = append(addresses, strings.ToUpper(strings.TrimLeft(seq.Address, "0x")))
-	}
-
-	go handleVotes(ctx, voteChan, resultChan, addresses)
+	go handleVotes(ctx, voteChan, resultChan, c.GetSequencers())
 	go func() {
-		e := handleBlocks(ctx, blockChan, resultChan, addresses)
+		e := handleBlocks(ctx, blockChan, resultChan, c.GetSequencers())
 		if e != nil {
 			log.ErrorDynamicArgs("🛑", e)
 			cancel()
@@ -252,7 +261,7 @@ type rawBlock struct {
 			ProposerAddress string      `json:"proposer_address"`
 		} `json:"header"`
 		LastCommit struct {
-			Signatures []signature `json:"signatures"`
+			Signatures []signature `json:"precommits"`
 		} `json:"last_commit"`
 	} `json:"block"`
 }
@@ -272,7 +281,7 @@ func (rb rawBlock) find(val string) bool {
 
 // handleBlocks consumes the channel for new blocks and when it sees one sends a status update. It's also
 // responsible for stalled sequencer detection and will shutdown the client if there are no blocks for a minute.
-func handleBlocks(ctx context.Context, blocks chan *WsReply, results chan map[string]StatusUpdate, addresses []string) error {
+func handleBlocks(ctx context.Context, blocks chan *WsReply, results chan map[string]StatusUpdate, sequencers map[string]*Sequencer) error {
 	live := time.NewTicker(time.Minute)
 	defer live.Stop()
 	lastBlock := time.Now()
@@ -291,7 +300,8 @@ func handleBlocks(ctx context.Context, blocks chan *WsReply, results chan map[st
 				log.ErrorDynamicArgs("could not decode block", err)
 				continue
 			}
-			for _, address := range addresses {
+			for _, seq := range sequencers {
+				address := strings.TrimLeft(strings.ToUpper(seq.Address), "0X")
 				upd := StatusUpdate{
 					Height: b.Block.Header.Height.val(),
 					Status: Statusmissed,
@@ -303,7 +313,7 @@ func handleBlocks(ctx context.Context, blocks chan *WsReply, results chan map[st
 				} else if b.find(address) {
 					upd.Status = StatusSigned
 				}
-				results <- map[string]StatusUpdate{address: upd}
+				results <- map[string]StatusUpdate{seq.name: upd}
 			}
 		case <-ctx.Done():
 			return nil
@@ -321,7 +331,7 @@ type rawVote struct {
 }
 
 // handleVotes consumes the channel for precommits and prevotes, tracking where in the process a validator is.
-func handleVotes(ctx context.Context, votes chan *WsReply, results chan map[string]StatusUpdate, addresses []string) {
+func handleVotes(ctx context.Context, votes chan *WsReply, results chan map[string]StatusUpdate, sequencers map[string]*Sequencer) {
 	for {
 		select {
 		case reply := <-votes:
@@ -331,7 +341,8 @@ func handleVotes(ctx context.Context, votes chan *WsReply, results chan map[stri
 				log.Error(err)
 				continue
 			}
-			for _, address := range addresses {
+			for _, seq := range sequencers {
+				address := strings.TrimLeft(strings.ToUpper(seq.Address), "0X")
 				if vote.Vote.ValidatorAddress == address {
 					upd := StatusUpdate{Height: vote.Vote.Height.val()}
 					switch vote.Vote.Type {
@@ -344,7 +355,7 @@ func handleVotes(ctx context.Context, votes chan *WsReply, results chan map[stri
 					default:
 						continue
 					}
-					results <- map[string]StatusUpdate{address: upd}
+					results <- map[string]StatusUpdate{seq.name: upd}
 				}
 			}
 		case <-ctx.Done():

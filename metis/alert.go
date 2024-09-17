@@ -474,10 +474,7 @@ func (c *MetisianClient) watch() {
 			alarms.clearNoBlocks(MetisianName)
 		}
 
-		for _, seq := range c.Sequencers {
-			if seq.name == MetisianName {
-				continue
-			}
+		for _, seq := range c.GetSequencers() {
 
 			// consecutive missed block alarms:
 			if !missedAlarm && seq.Alerts.ConsecutiveAlerts && int(seq.statConsecutiveMiss) >= seq.Alerts.ConsecutiveMissed {
@@ -506,7 +503,10 @@ func (c *MetisianClient) watch() {
 
 			// recommited sequencer alarms:
 			if seq.statNewSeqData == nil {
-				log.Debug(fmt.Sprintf("no epochs detected for this sequencer %20s (%s)", seq.name, seq.Address))
+				if seq.statSeqData != nil {
+					log.Debug(fmt.Sprintf("no epochs detected for this sequencer %20s (%s)", seq.name, seq.Address))
+				} // skipping
+
 			} else {
 				if seq.statSeqData == nil {
 					seq.statSeqData = seq.statNewSeqData
@@ -556,7 +556,17 @@ func (c *MetisianClient) watch() {
 
 							if !recommitAlarm {
 								newTask := seq.statNewSeqData.Epoches[0]
-								log.Info(fmt.Sprintf("💎 sequencer %20s (%s) has new mining task\t\tspanId: %4v, startBlock: %8s, endBlock: %8s, recommited: %t", seq.name, seq.Address, newTask.ID, newTask.StartBlock, newTask.EndBlock, newTask.Recommited))
+								msg := fmt.Sprintf("💎 sequencer %20s (%s) has new mining task\t\tspanId: %4v, startBlock: %8s, endBlock: %8s, recommited: %t", seq.name, seq.Address, newTask.ID, newTask.StartBlock, newTask.EndBlock, newTask.Recommited)
+								log.Info(msg)
+								if seq.Alerts.NotifyMining {
+									id := seq.Address + "mining"
+									c.alert(
+										seq.name,
+										msg,
+										"info",
+										false,
+										&id)
+								}
 
 							}
 						}

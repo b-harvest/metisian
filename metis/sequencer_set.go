@@ -55,10 +55,7 @@ func (c *MetisianClient) monitorSequencerSet(ctx context.Context) {
 
 		case <-tick.C:
 			var err error
-			for _, seq := range c.Sequencers {
-				if seq.name == MetisianName {
-					continue
-				}
+			for _, seq := range c.GetSequencers() {
 				go func(s *Sequencer) {
 					req := graphql.NewRequest(`
 query ($skip: Int, $first: Int, $address: String) {

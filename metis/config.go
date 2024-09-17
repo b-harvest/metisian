@@ -19,6 +19,13 @@ type Config struct {
 	// NodeDownSeverity controls the Pagerduty severity when notifying if a node is down.
 	NodeDownSeverity string `toml:"node_down_alert_severity"`
 
+	Stalled int `toml:"stalled_minutes"`
+
+	StalledAlerts bool `toml:"stalled_enabled"`
+
+	// AlertIfNoServers: should an alert be sent if no servers are reachable?
+	AlertIfNoServers bool `toml:"alert_if_no_servers"`
+
 	NodeInfos []NodeInfo `toml:"node_infos"`
 	ChainId   string     `toml:"chain_id"`
 
@@ -31,6 +38,14 @@ type Config struct {
 	Telegram TeleConfig `toml:"telegram"`
 	// Slack webhook information
 	Slack SlackConfig `toml:"slack"`
+
+	// EnableDash enables the web dashboard
+	EnableDash bool `toml:"enable_dashboard"`
+	// Listen is the URL for the dashboard to listen on, must be a valid/parsable URL
+	Listen string `toml:"listen_port"`
+	// HideLogs controls whether logs are sent to the dashboard. It will also suppress many alarm details.
+	// This is useful if the dashboard will be public.
+	HideLogs bool `toml:"hide_logs"`
 }
 
 type AlertConfig struct {
@@ -53,6 +68,8 @@ type AlertConfig struct {
 	// [[sequencers]]
 	// use_parent = true
 	UseParent bool `toml:"use_parent"`
+
+	NotifyMining bool `toml:"notify_mining"`
 
 	// sequencer specific overrides for alert destinations.
 	// Pagerduty configuration values

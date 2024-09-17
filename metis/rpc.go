@@ -158,7 +158,7 @@ func (c *MetisianClient) monitorHealth(ctx context.Context) {
 				}
 			}
 
-			for _, seq := range c.Sequencers {
+			for _, seq := range c.GetSequencers() {
 				if seq.valInfo != nil {
 					seq.lastValInfo = seq.valInfo.Copy()
 				}

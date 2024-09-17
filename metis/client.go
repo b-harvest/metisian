@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/b-harvest/metisian/log"
+	dash "github.com/b-harvest/metisian/metis/dashboard"
 	"github.com/gorilla/websocket"
 	"github.com/machinebox/graphql"
 	stakingtypes "github.com/metis-seq/themis/staking/types"
@@ -22,44 +23,50 @@ import (
 const MetisianName = "Metisian"
 
 type MetisianClient struct {
+	ChainId string
+
 	Ctx    context.Context
 	Cancel context.CancelFunc
 
-	// Target nodes which will connect to when fetch metis information.
 	Nodes   []NodeInfo
 	noNodes bool
-	// NodeDownMin controls how long we wait before sending an alert that a node is not responding or has
-	// fallen behind.
-	NodeDownMin int `toml:"node_down_alert_minutes"`
-	// NodeDownSeverity controls the Pagerduty severity when notifying if a node is down.
-	NodeDownSeverity string `toml:"node_down_alert_severity"`
+
+	NodeDownMin      int
+	NodeDownSeverity string
+
+	Stalled       int
+	StalledAlerts bool
+
+	AlertIfNoServers bool
 
 	client *MetisClient
 
-	//updateChan chan *dash.ChainStatus
-	//logChan    chan dash.LogMessage
+	updateChan chan *dash.SequencerStatus
+	logChan    chan dash.LogMessage
 
 	alertChan chan *alertMsg // channel used for outgoing notifications
 
 	Sequencers map[string]*Sequencer
 
-	minSignedPerWindow float64
-
-	ChainId string
-
 	seqClientMux sync.RWMutex
-
-	// AlertIfNoServers: should an alert be sent if no servers are reachable?
-	AlertIfNoServers bool `toml:"alert_if_no_servers"`
 
 	lastBlockTime  time.Time
 	lastBlockAlarm bool
 	lastBlockNum   int64
 
-	// How many minutes to wait before alerting that no new blocks have been seen
-	Stalled int `toml:"stalled_minutes"`
-	// Whether to alert when no new blocks are seen
-	StalledAlerts bool `toml:"stalled_enabled"`
+	EnableDash bool
+	Listen     string
+	HideLogs   bool
+}
+
+func (mc *MetisianClient) GetSequencers() map[string]*Sequencer {
+	var res = map[string]*Sequencer{}
+	for _, seq := range mc.Sequencers {
+		if seq.name != MetisianName {
+			res[seq.name] = seq
+		}
+	}
+	return res
 }
 
 type NodeInfo struct {
@@ -85,10 +92,32 @@ type alarmCache struct {
 	notifyMux      sync.RWMutex
 }
 
+const (
+	showBlocks = 512
+	staleHours = 24
+)
+
 func NewClient(cfg *Config) (*MetisianClient, error) {
-	var client MetisianClient
+	var (
+		client MetisianClient
+		err    error
+	)
+
+	// Check if configurations are valid
+	if cfg.EnableDash {
+		_, err = url.Parse(cfg.Listen)
+		if err != nil || cfg.Listen == "" {
+			log.Fatal(errors.New(fmt.Sprintf("error: The listen URL %s does not appear to be valid", cfg.Listen)))
+		}
+	}
+
+	if cfg.NodeDownMin < 3 {
+		log.Fatal(errors.New("warning: setting 'node_down_alert_minutes' to less than three minutes might result in false alarms"))
+	}
 
 	client.alertChan = make(chan *alertMsg)
+	client.logChan = make(chan dash.LogMessage)
+	client.updateChan = make(chan *dash.SequencerStatus, len(client.Sequencers)*2)
 	client.Ctx, client.Cancel = context.WithCancel(context.Background())
 
 	// configure sequencers
@@ -117,41 +146,22 @@ func NewClient(cfg *Config) (*MetisianClient, error) {
 		})
 	client.Sequencers[MetisianName] = &manager
 
-	// configure nodes
 	client.Nodes = cfg.NodeInfos
-
 	client.ChainId = cfg.ChainId
+	client.NodeDownMin = cfg.NodeDownMin
+	client.NodeDownSeverity = cfg.NodeDownSeverity
+	client.Stalled = cfg.Stalled
+	client.StalledAlerts = cfg.StalledAlerts
+	client.AlertIfNoServers = cfg.AlertIfNoServers
+	client.EnableDash = cfg.EnableDash
+	client.Listen = cfg.Listen
+	client.HideLogs = cfg.HideLogs
 
 	return &client, nil
 }
 
-type ChainStatus struct {
-	MsgType            string  `json:"msgType"`
-	Name               string  `json:"Name"`
-	ChainId            string  `json:"chain_id"`
-	Moniker            string  `json:"moniker"`
-	Bonded             bool    `json:"bonded"`
-	Jailed             bool    `json:"jailed"`
-	Tombstoned         bool    `json:"tombstoned"`
-	Missed             int64   `json:"missed"`
-	Window             int64   `json:"window"`
-	MinSignedPerWindow float64 `json:"min_signed_per_window"`
-	Nodes              int     `json:"nodes"`
-	HealthyNodes       int     `json:"healthy_nodes"`
-	ActiveAlerts       int     `json:"active_alerts"`
-	Height             int64   `json:"height"`
-	LastError          string  `json:"last_error"`
-
-	Blocks []int `json:"blocks"`
-}
-
-type LogMessage struct {
-	MsgType string `json:"msgType"`
-	Ts      int64  `json:"ts"`
-	Msg     string `json:"msg"`
-}
-
 func (c *MetisianClient) Run() {
+
 	go func() {
 		for {
 			select {
@@ -180,6 +190,37 @@ func (c *MetisianClient) Run() {
 			}
 		}
 	}()
+
+	if c.EnableDash {
+		go dash.Serve(c.Listen, c.updateChan, c.logChan, c.HideLogs)
+		log.Info("⚙️ starting dashboard on " + c.Listen)
+	} else {
+		go func() {
+			for {
+				<-c.updateChan
+			}
+		}()
+	}
+
+	for _, seq := range c.GetSequencers() {
+		if c.EnableDash {
+			if seq.blocksResults == nil {
+				seq.blocksResults = make([]int, showBlocks)
+				for i := range seq.blocksResults {
+					seq.blocksResults[i] = -1
+				}
+			}
+
+			c.updateChan <- &dash.SequencerStatus{
+				MsgType:      "status",
+				Name:         seq.name,
+				Address:      seq.Address,
+				Jailed:       false, // TODO replace `false` to seq.valInfo.jailed when save file logic has implemented.
+				ActiveAlerts: 0,
+				Blocks:       seq.blocksResults,
+			}
+		}
+	}
 
 	go c.watch()
 
@@ -311,7 +352,7 @@ func (mc *MetisClient) WriteMessage(mt int, data []byte) error {
 }
 
 func (c *MetisianClient) GetAnySequencer() *Sequencer {
-	for _, s := range c.Sequencers {
+	for _, s := range c.GetSequencers() {
 		return s
 	}
 	panic("Cannot find any sequencer!!")

@@ -15,6 +15,8 @@ type Sequencer struct {
 	blocksResults []int
 	lastError     string
 
+	activeAlerts int
+
 	statTotalSigns      float64
 	statTotalProps      float64
 	statTotalMiss       float64
@@ -47,7 +49,7 @@ func (c *MetisianClient) GetSeqValInfos() (err error) {
 		return err
 	}
 
-	for _, seq := range c.Sequencers {
+	for _, seq := range c.GetSequencers() {
 		if seq.valInfo == nil {
 			seq.valInfo = &types.Validator{}
 		}
