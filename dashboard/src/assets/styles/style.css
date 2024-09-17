@@ -1,0 +1,54 @@
+.App {
+    font-family: sans-serif;
+    text-align: center;
+  }
+
+
+
+img:last-of-type {
+  padding-left: 0;
+}
+
+.inner {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  height: 20rem;
+}
+
+.wrapper {
+  position: absolute;
+  display: flex;
+}
+
+.h-410 {
+  height: 410px;
+}
+
+.banner {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  width: 100%;
+  aspect-ratio: 1920 / 410;
+  z-index: 0;
+  /* background: url(https://bharvest.io/asset/mainBG.svg) 0% 0% / cover, 50% center no-repeat lightgray; */
+  background: url(https://sequencer.metis.io/assets/home_top_banner-3f3319ce.png) 0% 0% / cover, 50% center no-repeat lightgray;
+}
+
+section {
+  display: flex;
+  animation: swipe var(--speed) linear infinite backwards;
+}
+
+@keyframes swipe {
+  0% {
+    transform: translate(0);
+  }
+
+  100% {
+    transform: translate(-100%);
+  }
+}
+  

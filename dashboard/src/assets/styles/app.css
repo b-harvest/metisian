@@ -1,0 +1,16 @@
+@import './partials/rest.css';
+@import './partials/customAntd.css';
+@import './partials/layout.css';
+@import './partials/core.css';
+
+@import './partials/auth.css';
+@import './partials/navigation.css';
+@import './partials/header.css';
+@import './partials/sidePanel.css';
+@import './partials/collapseBox.css';
+@import './partials/erp.css';
+@import 'style.css';
+@import './uikit/uikit.css';
+@import './uikit/uikit.min.css';
+@import './uikit/uikit-rtl.css';
+@import './uikit/uikit-rtl.min.css';

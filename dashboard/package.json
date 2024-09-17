@@ -1,0 +1,70 @@
+{
+  "name": "metisian-dashboard",
+  "version": "1.0.0",
+  "private": false,
+  "engines": {
+    "npm": "10.2.4",
+    "node": "20.9.0"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^4.6.2",
+    "@ant-design/plots": "^2.3.2",
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^6.1.0",
+    "@mui/material": "^6.1.0",
+    "@mui/styles": "^6.1.0",
+    "@testing-library/jest-dom": "^5.14.1",
+    "@testing-library/react": "^11.2.7",
+    "@testing-library/user-event": "^12.8.3",
+    "@vitejs/plugin-react": "^4.2.1",
+    "antd": "^5.20.6",
+    "apexcharts": "^3.27.1",
+    "cross-env": "^7.0.3",
+    "install": "^0.13.0",
+    "lodash": "^4.17.21",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-horizontal-scrolling-menu": "^7.1.7",
+    "react-quill": "^2.0.0",
+    "react-redux": "^9.1.0",
+    "react-router-dom": "^6.22.0",
+    "redux": "^5.0.1",
+    "styled-components": "^5.3.11",
+    "uikit": "^3.21.12",
+    "vite": "^5.1.4",
+    "web-vitals": "^1.1.2"
+  },
+  "scripts": {
+    "dev": "vite",
+    "start": "react-scripts start",
+    "build": "vite build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.16.0"
+  },
+  "main": "index.js",
+  "repository": "https://github.com/b-harvest/metisian/",
+  "author": "qj0r9j0vc2 <me@qj0r9j0vc2.me>",
+  "license": "MIT"
+}
