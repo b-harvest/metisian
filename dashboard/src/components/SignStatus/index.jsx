@@ -115,6 +115,9 @@ function legend() {
 
 function drawSeries(multiStates) {
     const canvas = document.getElementById("canvas")
+    if (canvas === null) {
+        return
+    }
     canvas.height = ((12*gridH*multiStates.Status.length)/10) + 30
     fix_dpi("canvas")
     if (canvas.getContext) {
