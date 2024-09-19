@@ -121,7 +121,7 @@ func shouldNotify(msg *alertMsg, dest notifyDest) bool {
 	case !whichMap[msg.message].IsZero() && msg.resolved:
 		// alarm is cleared
 		delete(whichMap, msg.message)
-		log.Error(errors.New(fmt.Sprintf("💜 Resolved     alarm on %20s (%s) - notifying %s", msg.sequencer, msg.message, service)))
+		log.Info(fmt.Sprintf("💜 Resolved     alarm on %20s (%s) - notifying %s", msg.sequencer, msg.message, service))
 		return true
 	case msg.resolved:
 		// it looks like we got a duplicate resolution or suppressed it. Note it and move on:
@@ -142,7 +142,7 @@ func shouldNotify(msg *alertMsg, dest notifyDest) bool {
 		alarms.flappingAlarms[msg.sequencer][msg.message] = time.Now()
 	}
 
-	log.Error(errors.New(fmt.Sprintf("🚨 ALERT        new alarm on %20s (%s) - notifying %s", msg.sequencer, msg.message, service)))
+	log.Info(fmt.Sprintf("new alarm on %20s (%s) - notifying %s", msg.sequencer, msg.message, service))
 	whichMap[msg.message] = time.Now()
 	return true
 }
@@ -188,7 +188,7 @@ type Attachment struct {
 }
 
 func buildSlackMessage(msg *alertMsg) *SlackMessage {
-	prefix := "🚨 ALERT: "
+	prefix := ""
 	color := "danger"
 	if msg.resolved {
 		msg.message = "OK: " + msg.message
@@ -258,7 +258,7 @@ type DiscordEmbed struct {
 }
 
 func buildDiscordMessage(msg *alertMsg) *DiscordMessage {
-	prefix := "🚨 ALERT: "
+	prefix := ""
 	if msg.resolved {
 		prefix = "💜 Resolved: "
 	}
@@ -284,7 +284,7 @@ func notifyTg(msg *alertMsg) (err error) {
 		return
 	}
 
-	prefix := "🚨 ALERT: "
+	prefix := ""
 	if msg.resolved {
 		prefix = "💜 Resolved: "
 	}
@@ -397,7 +397,6 @@ func (c *MetisianClient) watch() {
 	var (
 		noNodes        bool
 		missedAlarm    = make(map[string]bool)
-		recommitAlarm  = make(map[string]bool)
 		noSequencerSet = make(map[string]bool)
 	)
 
@@ -549,8 +548,7 @@ func (c *MetisianClient) watch() {
 
 						if !noSequencerSet[seq.name] {
 							// check if sequencer data has removed
-							if !recommitAlarm[seq.name] && seq.statNewSeqData.find(seq.statSeqData.Epoches[0].ID) == nil {
-								recommitAlarm[seq.name] = true
+							if seq.statNewSeqData.find(seq.statSeqData.Epoches[0].ID) == nil {
 
 								id := seq.Address + "respan"
 								c.alert(
@@ -560,11 +558,7 @@ func (c *MetisianClient) watch() {
 									false,
 									&id)
 								seq.activeAlerts = alarms.getCount(seq.name)
-							} else if recommitAlarm[seq.name] {
-								recommitAlarm[seq.name] = false
-							}
-
-							if !recommitAlarm[seq.name] {
+							} else if seq.statSeqData.find(seq.statNewSeqData.Epoches[0].ID) == nil {
 								newTask := seq.statNewSeqData.Epoches[0]
 								msg := fmt.Sprintf("💎 sequencer %20s (%s) has new mining task\t\tspanId: %4v, startBlock: %8s, endBlock: %8s, recommited: %t", seq.name, seq.Address, newTask.ID, newTask.StartBlock, newTask.EndBlock, newTask.Recommited)
 								log.Info(msg)
@@ -578,13 +572,10 @@ func (c *MetisianClient) watch() {
 										&id)
 									seq.activeAlerts = alarms.getCount(seq.name)
 								}
-
 							}
-						}
-					}
 
-					if !recommitAlarm[seq.name] {
-						seq.statSeqData = seq.statNewSeqData
+							seq.statSeqData = seq.statNewSeqData
+						}
 					}
 
 				}
