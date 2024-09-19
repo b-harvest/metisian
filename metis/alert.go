@@ -115,12 +115,12 @@ func shouldNotify(msg *alertMsg, dest notifyDest) bool {
 	}
 
 	switch {
-	case !whichMap[msg.message].IsZero() && !msg.resolved:
+	case !whichMap[msg.sequencer+msg.message].IsZero() && !msg.resolved:
 		// already sent this alert
 		return false
-	case !whichMap[msg.message].IsZero() && msg.resolved:
+	case !whichMap[msg.sequencer+msg.message].IsZero() && msg.resolved:
 		// alarm is cleared
-		delete(whichMap, msg.message)
+		delete(whichMap, msg.sequencer+msg.message)
 		log.Info(fmt.Sprintf("💜 Resolved     alarm on %20s (%s) - notifying %s", msg.sequencer, msg.message, service))
 		return true
 	case msg.resolved:
@@ -143,7 +143,7 @@ func shouldNotify(msg *alertMsg, dest notifyDest) bool {
 	}
 
 	log.Info(fmt.Sprintf("new alarm on %20s (%s) - notifying %s", msg.sequencer, msg.message, service))
-	whichMap[msg.message] = time.Now()
+	whichMap[msg.sequencer+msg.message] = time.Now()
 	return true
 }
 
