@@ -563,7 +563,7 @@ func (c *MetisianClient) watch() {
 								id := seq.Address + "respan"
 								c.alert(
 									seq.name,
-									fmt.Sprintf("❌ sequencer %20s (%s) has recommited!! please check your sequencer status", seq.name, seq.Address),
+									fmt.Sprintf("❌ sequencer has recommited!! please check your sequencer status"),
 									"critical",
 									false,
 									false,
@@ -571,7 +571,7 @@ func (c *MetisianClient) watch() {
 
 								c.alert(
 									seq.name,
-									fmt.Sprintf("❌ sequencer %20s (%s) has recommited!! please check your sequencer status", seq.name, seq.Address),
+									fmt.Sprintf("❌ sequencer has recommited!! please check your sequencer status"),
 									"critical",
 									true,
 									true,
@@ -579,8 +579,7 @@ func (c *MetisianClient) watch() {
 								seq.activeAlerts = alarms.getCount(seq.name)
 							} else if seq.statSeqData.find(seq.statNewSeqData.Epoches[0].ID) == nil {
 								newTask := seq.statNewSeqData.Epoches[0]
-								msg := fmt.Sprintf("💎 sequencer %20s (%s) has new mining task\t\tspanId: %4v, startBlock: %8s, endBlock: %8s, recommited: %t", seq.name, seq.Address, newTask.ID, newTask.StartBlock, newTask.EndBlock, newTask.Recommited)
-								log.Info(msg)
+								msg := fmt.Sprintf("💎 sequencer has new mining task\t\tspanId: %4v, startBlock: %8s, endBlock: %8s, recommited: %t", newTask.ID, newTask.StartBlock, newTask.EndBlock, newTask.Recommited)
 								if seq.Alerts.NotifyMining {
 									id := seq.Address + "mining"
 									c.alert(
