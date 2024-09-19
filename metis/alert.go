@@ -340,7 +340,7 @@ func getAlarms(chain string) string {
 }
 
 // alert creates a universal alert and pushes it to the alertChan to be delivered to appropriate services
-func (c *MetisianClient) alert(seqName, message, severity string, resolved bool, id *string) {
+func (c *MetisianClient) alert(seqName, message, severity string, resolved, notSend bool, id *string) {
 	uniq := seqName
 	if id != nil {
 		uniq = *id
@@ -357,27 +357,29 @@ func (c *MetisianClient) alert(seqName, message, severity string, resolved bool,
 		seqAlert = c.Sequencers[seqName].Alerts
 	}
 
-	c.seqMux.RLock()
-	a := &alertMsg{
-		pd:           seqAlert.Pagerduty.Enabled,
-		disc:         seqAlert.Discord.Enabled,
-		tg:           seqAlert.Telegram.Enabled,
-		slk:          seqAlert.Slack.Enabled,
-		severity:     severity,
-		resolved:     resolved,
-		sequencer:    seqName,
-		message:      message,
-		uniqueId:     uniq,
-		key:          seqAlert.Pagerduty.ApiKey,
-		tgChannel:    seqAlert.Telegram.Channel,
-		tgKey:        seqAlert.Telegram.ApiKey,
-		tgMentions:   strings.Join(seqAlert.Telegram.Mentions, " "),
-		discHook:     seqAlert.Discord.Webhook,
-		discMentions: strings.Join(seqAlert.Discord.Mentions, " "),
-		slkHook:      seqAlert.Slack.Webhook,
+	if !notSend {
+		c.seqMux.RLock()
+		a := &alertMsg{
+			pd:           seqAlert.Pagerduty.Enabled,
+			disc:         seqAlert.Discord.Enabled,
+			tg:           seqAlert.Telegram.Enabled,
+			slk:          seqAlert.Slack.Enabled,
+			severity:     severity,
+			resolved:     resolved,
+			sequencer:    seqName,
+			message:      message,
+			uniqueId:     uniq,
+			key:          seqAlert.Pagerduty.ApiKey,
+			tgChannel:    seqAlert.Telegram.Channel,
+			tgKey:        seqAlert.Telegram.ApiKey,
+			tgMentions:   strings.Join(seqAlert.Telegram.Mentions, " "),
+			discHook:     seqAlert.Discord.Webhook,
+			discMentions: strings.Join(seqAlert.Discord.Mentions, " "),
+			slkHook:      seqAlert.Slack.Webhook,
+		}
+		c.alertChan <- a
+		c.seqMux.RUnlock()
 	}
-	c.alertChan <- a
-	c.seqMux.RUnlock()
 	alarms.notifyMux.Lock()
 	defer alarms.notifyMux.Unlock()
 	if alarms.AllAlarms[seqName] == nil {
@@ -414,6 +416,7 @@ func (c *MetisianClient) watch() {
 					fmt.Sprintf("no RPC endpoints are working"),
 					"critical",
 					false,
+					false,
 					nil,
 				)
 			}
@@ -446,6 +449,7 @@ func (c *MetisianClient) watch() {
 					fmt.Sprintf("no RPC endpoints are working"),
 					"critical",
 					false,
+					false,
 					nil,
 				)
 			}
@@ -464,6 +468,7 @@ func (c *MetisianClient) watch() {
 				fmt.Sprintf("stalled: have not seen a new block in %d minutes", c.Stalled),
 				"critical",
 				false,
+				false,
 				nil,
 			)
 		} else if c.StalledAlerts && c.lastBlockAlarm && c.lastBlockTime.IsZero() {
@@ -473,6 +478,7 @@ func (c *MetisianClient) watch() {
 				fmt.Sprintf("stalled: have not seen a new block in %d minutes", c.Stalled),
 				"info",
 				true,
+				false,
 				nil,
 			)
 			alarms.clearNoBlocks(MetisianName)
@@ -490,6 +496,7 @@ func (c *MetisianClient) watch() {
 					fmt.Sprintf("%20s (%s) has missed %d blocks", seq.name, seq.Address, seq.Alerts.ConsecutiveMissed),
 					seq.Alerts.ConsecutivePriority,
 					false,
+					false,
 					&id,
 				)
 				seq.activeAlerts = alarms.getCount(seq.name)
@@ -502,6 +509,7 @@ func (c *MetisianClient) watch() {
 					fmt.Sprintf("%20s (%s) has missed %d blocks", seq.name, seq.Address, seq.Alerts.ConsecutiveMissed),
 					"info",
 					true,
+					false,
 					&id,
 				)
 				seq.activeAlerts = alarms.getCount(seq.name)
@@ -532,6 +540,7 @@ func (c *MetisianClient) watch() {
 								fmt.Sprintf("cannot fetch sequencer info : %20s (%s)", seq.name, seq.Address),
 								"warn",
 								false,
+								false,
 								&id)
 							seq.activeAlerts = alarms.getCount(seq.name)
 						} else if noSequencerSet[seq.name] && len(seq.statNewSeqData.Epoches) > 0 {
@@ -542,6 +551,7 @@ func (c *MetisianClient) watch() {
 								fmt.Sprintf("cannot fetch sequencer info : %20s (%s)", seq.name, seq.Address),
 								"warn",
 								true,
+								false,
 								&id)
 							seq.activeAlerts = alarms.getCount(seq.name)
 						}
@@ -556,6 +566,15 @@ func (c *MetisianClient) watch() {
 									fmt.Sprintf("❌ sequencer %20s (%s) has recommited!! please check your sequencer status", seq.name, seq.Address),
 									"critical",
 									false,
+									false,
+									&id)
+
+								c.alert(
+									seq.name,
+									fmt.Sprintf("❌ sequencer %20s (%s) has recommited!! please check your sequencer status", seq.name, seq.Address),
+									"critical",
+									true,
+									true,
 									&id)
 								seq.activeAlerts = alarms.getCount(seq.name)
 							} else if seq.statSeqData.find(seq.statNewSeqData.Epoches[0].ID) == nil {
@@ -569,6 +588,15 @@ func (c *MetisianClient) watch() {
 										msg,
 										"info",
 										false,
+										false,
+										&id)
+
+									c.alert(
+										seq.name,
+										msg,
+										"info",
+										true,
+										true,
 										&id)
 									seq.activeAlerts = alarms.getCount(seq.name)
 								}
@@ -597,6 +625,7 @@ func (c *MetisianClient) watch() {
 					fmt.Sprintf("Severity: %s\nRPC node %s has been down for > %d minutes", c.NodeDownSeverity, node.RpcURL, c.NodeDownMin),
 					c.NodeDownSeverity,
 					false,
+					false,
 					&node.RpcURL,
 				)
 			} else if node.AlertIfDown && !node.down && node.wasDown {
@@ -608,6 +637,7 @@ func (c *MetisianClient) watch() {
 					fmt.Sprintf("Severity: %s\nRPC node %s has been down for > %d minutes on %s", c.NodeDownSeverity, node.RpcURL, c.NodeDownMin),
 					"info",
 					true,
+					false,
 					&node.RpcURL,
 				)
 			}
