@@ -493,7 +493,7 @@ func (c *MetisianClient) watch() {
 				id := seq.Address + "consecutive"
 				c.alert(
 					seq.name,
-					fmt.Sprintf("%20s (%s) has missed %d blocks", seq.name, seq.Address, seq.Alerts.ConsecutiveMissed),
+					fmt.Sprintf("sequencer has missed %d blocks", seq.Alerts.ConsecutiveMissed),
 					seq.Alerts.ConsecutivePriority,
 					false,
 					false,
@@ -506,7 +506,7 @@ func (c *MetisianClient) watch() {
 				id := seq.Address + "consecutive"
 				c.alert(
 					seq.name,
-					fmt.Sprintf("%20s (%s) has missed %d blocks", seq.name, seq.Address, seq.Alerts.ConsecutiveMissed),
+					fmt.Sprintf("sequencer has missed %d blocks", seq.Alerts.ConsecutiveMissed),
 					"info",
 					true,
 					false,
