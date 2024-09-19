@@ -25,3 +25,5 @@ go.work.sum
 .env
 
 config.toml
+.idea
+.metisian-state.json
