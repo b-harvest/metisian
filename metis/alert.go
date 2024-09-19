@@ -465,7 +465,7 @@ func (c *MetisianClient) watch() {
 			c.lastBlockAlarm = true
 			c.alert(
 				MetisianName,
-				fmt.Sprintf("stalled: have not seen a new block in %d minutes", c.Stalled),
+				fmt.Sprintf("🚨 stalled: have not seen a new block in %d minutes", c.Stalled),
 				"critical",
 				false,
 				false,
@@ -475,7 +475,7 @@ func (c *MetisianClient) watch() {
 			c.lastBlockAlarm = false
 			c.alert(
 				MetisianName,
-				fmt.Sprintf("stalled: have not seen a new block in %d minutes", c.Stalled),
+				fmt.Sprintf("🚨 stalled: have not seen a new block in %d minutes", c.Stalled),
 				"info",
 				true,
 				false,
@@ -493,7 +493,7 @@ func (c *MetisianClient) watch() {
 				id := seq.Address + "consecutive"
 				c.alert(
 					seq.name,
-					fmt.Sprintf("sequencer has missed %d blocks", seq.Alerts.ConsecutiveMissed),
+					fmt.Sprintf("🚨 sequencer has missed %d blocks", seq.Alerts.ConsecutiveMissed),
 					seq.Alerts.ConsecutivePriority,
 					false,
 					false,
@@ -506,7 +506,7 @@ func (c *MetisianClient) watch() {
 				id := seq.Address + "consecutive"
 				c.alert(
 					seq.name,
-					fmt.Sprintf("sequencer has missed %d blocks", seq.Alerts.ConsecutiveMissed),
+					fmt.Sprintf("🚨 sequencer has missed %d blocks", seq.Alerts.ConsecutiveMissed),
 					"info",
 					true,
 					false,
@@ -537,7 +537,7 @@ func (c *MetisianClient) watch() {
 							id := seq.Address + "sequencer-set"
 							c.alert(
 								seq.name,
-								fmt.Sprintf("cannot fetch sequencer info : %20s (%s)", seq.name, seq.Address),
+								fmt.Sprintf("🚨 cannot fetch sequencer info : %20s (%s)", seq.name, seq.Address),
 								"warn",
 								false,
 								false,
@@ -548,7 +548,7 @@ func (c *MetisianClient) watch() {
 							id := seq.Address + "sequencer-set"
 							c.alert(
 								seq.name,
-								fmt.Sprintf("cannot fetch sequencer info : %20s (%s)", seq.name, seq.Address),
+								fmt.Sprintf("🚨 cannot fetch sequencer info : %20s (%s)", seq.name, seq.Address),
 								"warn",
 								true,
 								false,
