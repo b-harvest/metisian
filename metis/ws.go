@@ -155,11 +155,14 @@ func (c *MetisianClient) WsRun() {
 						seq.activeAlerts = alarms.getCount(seq.name)
 
 						var (
-							latestSelectedEpoch int64 = 0
-							isProducing               = false
+							epochs      []int64
+							isProducing = false
 						)
 						if seq.statSeqData != nil && len(seq.statSeqData.Epoches) != 0 {
-							latestSelectedEpoch, _ = strconv.ParseInt(seq.statSeqData.Epoches[0].ID, 0, 64)
+							for _, e := range seq.statSeqData.Epoches {
+								eid, _ := strconv.ParseInt(e.ID, 0, 64)
+								epochs = append(epochs, eid)
+							}
 						}
 						if seq.statSeqData != nil && seq.statSeqData.IsNow {
 							isProducing = true
@@ -167,15 +170,15 @@ func (c *MetisianClient) WsRun() {
 						if c.EnableDash {
 							log.Debug(fmt.Sprintf("Insert event for sequencer %20s (%s)", seq.name, seq.Address))
 							c.updateChan <- &dash.SequencerStatus{
-								MsgType:             "status",
-								Name:                seq.name,
-								Address:             seq.Address,
-								Jailed:              seq.valInfo.Jailed,
-								ActiveAlerts:        seq.activeAlerts,
-								LastError:           info,
-								LatestSelectedEpoch: latestSelectedEpoch,
-								IsProducing:         isProducing,
-								Blocks:              seq.blocksResults,
+								MsgType:      "status",
+								Name:         seq.name,
+								Address:      seq.Address,
+								Jailed:       seq.valInfo.Jailed,
+								ActiveAlerts: seq.activeAlerts,
+								LastError:    info,
+								Epochs:       epochs,
+								IsProducing:  isProducing,
+								Blocks:       seq.blocksResults,
 							}
 						}
 
