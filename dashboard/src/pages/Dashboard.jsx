@@ -5,6 +5,7 @@ import {
   Col,
   Row,
   Spin,
+  Avatar
 } from "antd";
 
 import 'react-horizontal-scrolling-menu/dist/styles.css';
@@ -19,6 +20,7 @@ import { useSeqStatus } from '../context/statusContext';
 const {Meta} = Card
 
 const MAINNET_SEQUENCER_RESOURCE = "https://raw.githubusercontent.com/MetisProtocol/metis-sequencer-resources/main/sequencers/1088";
+
 const SEPOLIA_SEQUENCER_RESOURCE_BASE = "https://raw.githubusercontent.com/MetisProtocol/metis-sequencer-resources/main/sequencers/59902";
 const ALL_ENDPOINT = "/all.json";
 
@@ -26,6 +28,9 @@ export const SEQUENCER_EXPLORER = "https://sequencer.metis.io/#/sequencers/"
 
 
 export const truncateText = (text, maxLength) => {
+  if (text == null) {
+    return ""
+  }
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + '...';
 };
@@ -34,8 +39,9 @@ export const truncateText = (text, maxLength) => {
 function Dashboard() {
   const { statusData } = useSeqStatus();
   const [seqResourceData, setSeqResourceData] = useState([]);
-  const [epochStat, setEpochStat] = useState([]);
+
   const [sortedStatus, setSortedStatus] = useState([]);
+
 
   // useEffect(() => console.log(statusData), [statusData])
 
@@ -57,7 +63,6 @@ function Dashboard() {
     setSeqResourceData(seqResData);
   }
 
-
   useEffect(() => {
     if (!statusData?.Status || !seqResourceData) {
       return;
@@ -73,14 +78,29 @@ function Dashboard() {
             avatar: resourceItem.avatar.replace("{BASEDIR}", SEPOLIA_SEQUENCER_RESOURCE_BASE),
             id: item.latest_selected_epoch,
             name: item.name,
-            desc: resourceItem.desc
+            desc: resourceItem.desc,
+            isProducing: item.is_producing
           });
         }
       });
     });
   
-    setEpochStat(newEpochStat);
-    setSortedStatus([...newEpochStat].sort((a, b) => a.id - b.id));
+    const statuses = [...newEpochStat].sort((a, b) => a.id - b.id);
+    const fixedStatuses = [];
+    fixedStatuses.push(...statuses)
+
+    const lastSeq = statuses[statuses.length-1]
+    if (statuses.length > 0 && lastSeq.isProducing) {
+      fixedStatuses.push({
+        id: lastSeq.id + 1,
+        address: "",
+        notSelected: true
+      });
+    }
+    
+
+    // console.log(fixedStatuses)
+    setSortedStatus(fixedStatuses);
 
   }, [statusData, seqResourceData]);
   
@@ -95,7 +115,26 @@ function Dashboard() {
           <Col>
           <Link to={sortedStatus.length > 2 ? SEQUENCER_EXPLORER + sortedStatus[sortedStatus.length - 3].address:""}>
             <Card
-            title={sortedStatus.length > 2 ?"Epoch: " + sortedStatus[sortedStatus.length - 3].id:""}
+              title={
+                sortedStatus.length > 2 ? (
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'absolute', top: '14px', right: '20px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#02d6d6' }}>Completed</span>
+                      <div
+                        style={{
+                          width: '12px',
+                          height: '12px',
+                          backgroundColor: '#02d6d6',
+                          borderRadius: '50%',
+                        }}
+                      ></div>
+                    </div>
+                    {"Epoch: " + sortedStatus[sortedStatus.length - 3].id}
+                  </div>
+                ) : (
+                  ""
+                )
+              }
               loading={sortedStatus.length > 2 ?null:"true"}
               key={"previous-seq"}
               hoverable
@@ -105,7 +144,7 @@ function Dashboard() {
                 <img
                   alt={sortedStatus.length > 2 ?sortedStatus[sortedStatus.length - 3].address:""}
                   src={sortedStatus.length > 2 ?sortedStatus[sortedStatus.length - 3].avatar:""}
-                  style={{ height: 270, objectFit: "cover" }}
+                  style={{ height: 270, objectFit: "cover", borderRadius: "50%"  }}
                 /> 
               }
               className="criclebox"
@@ -120,17 +159,39 @@ function Dashboard() {
           <Col>
             <Link to={sortedStatus.length > 1 ? SEQUENCER_EXPLORER + sortedStatus[sortedStatus.length - 2].address:""}>
             <Card
-            title={sortedStatus.length > 1 ?"Epoch: " + sortedStatus[sortedStatus.length - 2].id:""}
+              title={
+                sortedStatus.length > 1 ? (
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'absolute', top: '14px', right: '20px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#00EA5E' }}>Producing</span>
+                      <div
+                        style={{
+                          width: '12px',
+                          height: '12px',
+                          backgroundColor: '#00EA5E',
+                          borderRadius: '50%',
+                        }}
+                      ></div>
+                    </div>
+                    {"Epoch: " + sortedStatus[sortedStatus.length - 2].id}
+                  </div>
+                ) : (
+                  ""
+                )
+              }
               loading={sortedStatus.length > 1 ?null:"true"}
               key={"current-seq"}
               hoverable 
-              style={{ width: 300, height: 500}} 
+              style={{ 
+                width: 300, 
+                height: 500,
+              }} 
               bordered={false} 
               cover={
                 <img 
                   alt={sortedStatus.length > 1 ?sortedStatus[sortedStatus.length - 2].address:""} 
                   src={sortedStatus.length > 1 ?sortedStatus[sortedStatus.length - 2].avatar:""} 
-                  style={{ height: 300, objectFit: "cover" }}
+                  style={{ height: 300, objectFit: "cover", borderRadius: "50%"  }}
                 />
               }
               className="criclebox"
@@ -138,15 +199,35 @@ function Dashboard() {
               <Meta 
               loading={sortedStatus.length > 1 ?null:"true"}
               title={sortedStatus.length > 1 ?sortedStatus[sortedStatus.length - 2].name:""} 
-              description={sortedStatus.length > 1 ?truncateText(sortedStatus[sortedStatus.length - 2].desc,100):""}/>
+              description={sortedStatus.length > 1 ?truncateText(sortedStatus[sortedStatus.length - 2].desc,100):""}
+              />
             </Card>
             </Link>
           </Col>
           <Col>
-          <Link to={sortedStatus.length > 0 ? SEQUENCER_EXPLORER + sortedStatus[sortedStatus.length - 1].address:""}>
+            <Link to={sortedStatus.length > 0 ? SEQUENCER_EXPLORER + sortedStatus[sortedStatus.length - 1].address:""}>
             <Card
-              title={sortedStatus.length > 0 ?"Epoch: " + sortedStatus[sortedStatus.length - 1].id:""}
-              loading={sortedStatus.length > 0 ?null:"true"}
+              title={
+                sortedStatus.length > 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'absolute', top: '14px', right: '20px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#00EA5E' }}>Next Period</span>
+                      <div
+                        style={{
+                          width: '12px',
+                          height: '12px',
+                          backgroundColor: '#00EA5E',
+                          borderRadius: '50%',
+                        }}
+                      ></div>
+                    </div>
+                    {"Epoch: " + sortedStatus[sortedStatus.length - 1].id}
+                  </div>
+                ) : (
+                  ""
+                )
+              }
+              loading={sortedStatus.length > 0 && !sortedStatus[sortedStatus.length - 1].notSelected ?null:"true"}
               key={"next-seq"}
               hoverable
               style={{ width: 270, height: 450}}
@@ -155,13 +236,13 @@ function Dashboard() {
                 <img
                   alt={sortedStatus.length > 0 ?sortedStatus[sortedStatus.length - 1].address:""}
                   src={sortedStatus.length > 0 ?sortedStatus[sortedStatus.length - 1].avatar:""}
-                  style={{ height: 270, objectFit: "cover" }}
+                  style={{ height: 270, objectFit: "cover", borderRadius: "50%"  }}
                 />
               }
               className="criclebox"
             >
               <Meta 
-              loading={sortedStatus.length > 0 ?null:"true"}
+              loading={sortedStatus.length > 0 && !sortedStatus[sortedStatus.length - 1].notSelected ?null:"true"}
               title={sortedStatus.length > 0 ?sortedStatus[sortedStatus.length - 1].name:""} 
               description={sortedStatus.length > 0 ?truncateText(sortedStatus[sortedStatus.length - 1].desc,80):""}/>
             </Card>
