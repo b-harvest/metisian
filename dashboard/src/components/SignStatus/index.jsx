@@ -202,7 +202,7 @@ const SignStatus = () => {
     const { statusData, setStatusData } = useSeqStatus(); 
   const [logs, setLogs] = useState([]);
   const logRef = useRef(null);
-  const HOST = "localhost:8888/"
+  const HOST = import.meta.env.VITE_HOST? import.meta.env.VITE_HOST: "localhost:8888/"
   const PROTOCOL = "http://"
 
   useEffect(() => {
