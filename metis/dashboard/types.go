@@ -9,6 +9,8 @@ type SequencerStatus struct {
 	LastError           string `json:"last_error"`
 	LatestSelectedEpoch int64  `json:"latest_selected_epoch"`
 
+	IsProducing bool `json:"is_producing"`
+
 	Blocks []int `json:"blocks"`
 }
 

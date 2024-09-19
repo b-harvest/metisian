@@ -31,7 +31,7 @@ func (c *MetisianClient) newRpc() error {
 			down = true
 			return
 		}
-		c.client, err = NewMetisClient(nodeInfo)
+		c.client, err = NewMetisClient(nodeInfo, c)
 		if err != nil {
 			msg = fmt.Sprintf("❌ could not connect client: (%s) %s", nodeInfo.RpcURL, err)
 			log.Warn(msg)

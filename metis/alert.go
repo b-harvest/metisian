@@ -357,7 +357,7 @@ func (c *MetisianClient) alert(seqName, message, severity string, resolved bool,
 		seqAlert = c.Sequencers[seqName].Alerts
 	}
 
-	c.seqClientMux.RLock()
+	c.seqMux.RLock()
 	a := &alertMsg{
 		pd:           seqAlert.Pagerduty.Enabled,
 		disc:         seqAlert.Discord.Enabled,
@@ -377,7 +377,7 @@ func (c *MetisianClient) alert(seqName, message, severity string, resolved bool,
 		slkHook:      seqAlert.Slack.Webhook,
 	}
 	c.alertChan <- a
-	c.seqClientMux.RUnlock()
+	c.seqMux.RUnlock()
 	alarms.notifyMux.Lock()
 	defer alarms.notifyMux.Unlock()
 	if alarms.AllAlarms[seqName] == nil {
@@ -394,7 +394,12 @@ func (c *MetisianClient) alert(seqName, message, severity string, resolved bool,
 
 // watch handles monitoring for missed blocks, stalled sequencer, node downtime
 func (c *MetisianClient) watch() {
-	var missedAlarm, noNodes, recommitAlarm, noSequencerSet bool
+	var (
+		noNodes        bool
+		missedAlarm    = make(map[string]bool)
+		recommitAlarm  = make(map[string]bool)
+		noSequencerSet = make(map[string]bool)
+	)
 
 	// Alert if there are no endpoints available
 	noNodesSec := 0 // delay a no-nodes alarm for 30 seconds, too noisy.
@@ -477,9 +482,9 @@ func (c *MetisianClient) watch() {
 		for _, seq := range c.GetSequencers() {
 
 			// consecutive missed block alarms:
-			if !missedAlarm && seq.Alerts.ConsecutiveAlerts && int(seq.statConsecutiveMiss) >= seq.Alerts.ConsecutiveMissed {
+			if !missedAlarm[seq.name] && seq.Alerts.ConsecutiveAlerts && int(seq.statConsecutiveMiss) >= seq.Alerts.ConsecutiveMissed {
 				// alert on missed block counter!
-				missedAlarm = true
+				missedAlarm[seq.name] = true
 				id := seq.Address + "consecutive"
 				c.alert(
 					seq.name,
@@ -488,9 +493,10 @@ func (c *MetisianClient) watch() {
 					false,
 					&id,
 				)
-			} else if missedAlarm && int(seq.statConsecutiveMiss) < seq.Alerts.ConsecutiveMissed {
+				seq.activeAlerts = alarms.getCount(seq.name)
+			} else if missedAlarm[seq.name] && int(seq.statConsecutiveMiss) < seq.Alerts.ConsecutiveMissed {
 				// clear the alert
-				missedAlarm = false
+				missedAlarm[seq.name] = false
 				id := seq.Address + "consecutive"
 				c.alert(
 					seq.name,
@@ -499,6 +505,7 @@ func (c *MetisianClient) watch() {
 					true,
 					&id,
 				)
+				seq.activeAlerts = alarms.getCount(seq.name)
 			}
 
 			// recommited sequencer alarms:
@@ -518,8 +525,8 @@ func (c *MetisianClient) watch() {
 
 					if len(changelog) > 0 {
 
-						if !noSequencerSet && len(seq.statNewSeqData.Epoches) == 0 {
-							noSequencerSet = true
+						if !noSequencerSet[seq.name] && len(seq.statNewSeqData.Epoches) == 0 {
+							noSequencerSet[seq.name] = true
 							id := seq.Address + "sequencer-set"
 							c.alert(
 								seq.name,
@@ -527,8 +534,9 @@ func (c *MetisianClient) watch() {
 								"warn",
 								false,
 								&id)
-						} else if noSequencerSet && len(seq.statNewSeqData.Epoches) > 0 {
-							noSequencerSet = false
+							seq.activeAlerts = alarms.getCount(seq.name)
+						} else if noSequencerSet[seq.name] && len(seq.statNewSeqData.Epoches) > 0 {
+							noSequencerSet[seq.name] = false
 							id := seq.Address + "sequencer-set"
 							c.alert(
 								seq.name,
@@ -536,12 +544,13 @@ func (c *MetisianClient) watch() {
 								"warn",
 								true,
 								&id)
+							seq.activeAlerts = alarms.getCount(seq.name)
 						}
 
-						if !noSequencerSet {
+						if !noSequencerSet[seq.name] {
 							// check if sequencer data has removed
-							if !recommitAlarm && seq.statNewSeqData.find(seq.statSeqData.Epoches[0].ID) == nil {
-								recommitAlarm = true
+							if !recommitAlarm[seq.name] && seq.statNewSeqData.find(seq.statSeqData.Epoches[0].ID) == nil {
+								recommitAlarm[seq.name] = true
 
 								id := seq.Address + "respan"
 								c.alert(
@@ -550,11 +559,12 @@ func (c *MetisianClient) watch() {
 									"critical",
 									false,
 									&id)
-							} else if recommitAlarm {
-								recommitAlarm = false
+								seq.activeAlerts = alarms.getCount(seq.name)
+							} else if recommitAlarm[seq.name] {
+								recommitAlarm[seq.name] = false
 							}
 
-							if !recommitAlarm {
+							if !recommitAlarm[seq.name] {
 								newTask := seq.statNewSeqData.Epoches[0]
 								msg := fmt.Sprintf("💎 sequencer %20s (%s) has new mining task\t\tspanId: %4v, startBlock: %8s, endBlock: %8s, recommited: %t", seq.name, seq.Address, newTask.ID, newTask.StartBlock, newTask.EndBlock, newTask.Recommited)
 								log.Info(msg)
@@ -566,13 +576,14 @@ func (c *MetisianClient) watch() {
 										"info",
 										false,
 										&id)
+									seq.activeAlerts = alarms.getCount(seq.name)
 								}
 
 							}
 						}
 					}
 
-					if !noSequencerSet {
+					if !recommitAlarm[seq.name] {
 						seq.statSeqData = seq.statNewSeqData
 					}
 

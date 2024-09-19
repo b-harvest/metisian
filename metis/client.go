@@ -1,6 +1,7 @@
 package metis
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,10 +14,16 @@ import (
 	themistypes "github.com/metis-seq/themis/types"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -25,6 +32,9 @@ const MetisianName = "Metisian"
 
 type MetisianClient struct {
 	ChainId string
+
+	SequencerSetUrl string
+	L2RpcUrl        string
 
 	Ctx    context.Context
 	Cancel context.CancelFunc
@@ -49,7 +59,7 @@ type MetisianClient struct {
 
 	Sequencers map[string]*Sequencer
 
-	seqClientMux sync.RWMutex
+	seqMux sync.RWMutex
 
 	lastBlockTime  time.Time
 	lastBlockAlarm bool
@@ -60,9 +70,9 @@ type MetisianClient struct {
 	HideLogs   bool
 }
 
-func (mc *MetisianClient) GetSequencers() map[string]*Sequencer {
+func (c *MetisianClient) GetSequencers() map[string]*Sequencer {
 	var res = map[string]*Sequencer{}
-	for _, seq := range mc.Sequencers {
+	for _, seq := range c.Sequencers {
 		if seq.name != MetisianName {
 			res[seq.name] = seq
 		}
@@ -94,9 +104,17 @@ type alarmCache struct {
 }
 
 const (
-	showBlocks = 512
-	staleHours = 24
+	showBlocks       = 512
+	staleHours       = 24
+	SEPOLIA_CHAIN_ID = "sepolia-1"
+	MAINNET_CHAIN_ID = "andromeda"
 )
+
+const SEPOLIA_SEQUENCER_SET_URL = "https://sepolia-subgraph.metisdevops.link/subgraphs/name/metisio/sequencer-set"
+const SEPOLIA_L2_RPC_URL = "https://sepolia.metisdevops.link"
+
+const MAINNET_SEQUENCER_SET_URL = "https://sepolia-subgraph.metisdevops.link/subgraphs/name/metisio/sequencer-set"
+const MAINNET_L2_RPC_URL = "https://sepolia.metisdevops.link"
 
 func NewClient(cfg *Config) (*MetisianClient, error) {
 	var (
@@ -148,7 +166,18 @@ func NewClient(cfg *Config) (*MetisianClient, error) {
 	client.Sequencers[MetisianName] = &manager
 
 	client.Nodes = cfg.NodeInfos
-	client.ChainId = cfg.ChainId
+	if cfg.ChainId == MAINNET_CHAIN_ID {
+		client.ChainId = cfg.ChainId
+		client.SequencerSetUrl = MAINNET_SEQUENCER_SET_URL
+		client.L2RpcUrl = MAINNET_L2_RPC_URL
+	} else if cfg.ChainId == SEPOLIA_CHAIN_ID {
+		client.ChainId = cfg.ChainId
+		client.SequencerSetUrl = SEPOLIA_SEQUENCER_SET_URL
+		client.L2RpcUrl = SEPOLIA_L2_RPC_URL
+	} else {
+		return nil, errors.New(fmt.Sprintf("chain id doesn't matched. you should set either %s or %s", MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID))
+	}
+
 	client.NodeDownMin = cfg.NodeDownMin
 	client.NodeDownSeverity = cfg.NodeDownSeverity
 	client.Stalled = cfg.Stalled
@@ -157,6 +186,32 @@ func NewClient(cfg *Config) (*MetisianClient, error) {
 	client.EnableDash = cfg.EnableDash
 	client.Listen = cfg.Listen
 	client.HideLogs = cfg.HideLogs
+
+	sf, e := os.OpenFile(cfg.StateFile, os.O_RDONLY, 0600)
+	if e != nil {
+		log.Warn(e.Error())
+	}
+	b, e := io.ReadAll(sf)
+	_ = sf.Close()
+	if e != nil {
+		log.Warn(e.Error())
+	}
+	saved := &savedState{}
+	e = json.Unmarshal(b, saved)
+	if e != nil {
+		log.Warn(e.Error())
+	}
+	for seq, blocks := range saved.Blocks {
+		if client.Sequencers[seq] != nil {
+			client.Sequencers[seq].blocksResults = blocks
+		}
+	}
+
+	for seq, seqData := range saved.Sequencers {
+		if client.Sequencers[seq] != nil {
+			client.Sequencers[seq].statSeqData = &seqData
+		}
+	}
 
 	return &client, nil
 }
@@ -257,18 +312,16 @@ func (c *MetisianClient) Run() {
 		time.Sleep(5 * time.Second)
 
 	}
-
 }
-
-const SEQUENCER_SET_URL = "https://sepolia-subgraph.metisdevops.link/subgraphs/name/metisio/sequencer-set"
 
 type MetisClient struct {
 	rpcUrl       string
 	wsConn       *websocket.Conn
 	seqSetClient graphql.Client
+	l2RpcUrl     string
 }
 
-func NewMetisClient(nodeInfo NodeInfo) (*MetisClient, error) {
+func NewMetisClient(nodeInfo NodeInfo, c *MetisianClient) (*MetisClient, error) {
 	var (
 		mc    MetisClient
 		wsUrl *url.URL
@@ -297,7 +350,8 @@ func NewMetisClient(nodeInfo NodeInfo) (*MetisClient, error) {
 
 	mc.wsConn = conn
 
-	mc.seqSetClient = *graphql.NewClient(SEQUENCER_SET_URL, graphql.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}))
+	mc.seqSetClient = *graphql.NewClient(c.SequencerSetUrl, graphql.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}))
+	mc.l2RpcUrl = c.L2RpcUrl
 
 	return &mc, nil
 }
@@ -357,4 +411,134 @@ func (c *MetisianClient) GetAnySequencer() *Sequencer {
 		return s
 	}
 	panic("Cannot find any sequencer!!")
+}
+
+func (c *MetisianClient) GetEthBlockNumber() (int64, error) {
+	jsonBody := map[string]interface{}{
+		"method":  "eth_blockNumber",
+		"params":  []interface{}{},
+		"id":      1,
+		"jsonrpc": "2.0",
+	}
+
+	body, err := json.Marshal(jsonBody)
+	if err != nil {
+		return 0, err
+	}
+	req, err := http.NewRequest("POST", c.L2RpcUrl, bytes.NewBuffer(body))
+	if err != nil {
+		return 0, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	httpClient := &http.Client{}
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer res.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	var resBody map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &resBody); err != nil {
+		return 0, err
+	}
+
+	resultHex, ok := resBody["result"].(string)
+	if !ok {
+		return 0, err
+	}
+
+	resultInt, err := strconv.ParseInt(resultHex[2:], 16, 64) // Strip "0x" and convert
+	if err != nil {
+		return 0, err
+	}
+
+	return resultInt, nil
+}
+
+// savedState is dumped to a JSON file at exit time, and is loaded at start. If successful it will prevent
+// duplicate alerts, and will show old blocks in the dashboard.
+type savedState struct {
+	Alarms     *alarmCache          `json:"alarms"`
+	Blocks     map[string][]int     `json:"blocks"`
+	NodesDown  map[string]time.Time `json:"nodes_down"`
+	Sequencers map[string]SeqData   `json:"sequencers"`
+}
+
+func (c *MetisianClient) SaveOnExit(stateFile string, saved chan interface{}) {
+	quitting := make(chan os.Signal, 1)
+	signal.Notify(quitting, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+
+	saveState := func() {
+		defer close(saved)
+		log.Info("saving state...")
+		//#nosec -- variable specified on command line
+		f, e := os.OpenFile(stateFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+		if e != nil {
+			log.Error(e)
+			return
+		}
+		c.seqMux.Lock()
+		defer c.seqMux.Unlock()
+		blocks := make(map[string][]int)
+		// only need to save counts if the dashboard exists
+		if c.EnableDash {
+			for k, v := range c.Sequencers {
+				blocks[k] = v.blocksResults
+			}
+		}
+		nodesDown := make(map[string]time.Time)
+		for _, node := range c.Nodes {
+			if node.down {
+				if nodesDown == nil {
+					nodesDown = make(map[string]time.Time)
+				}
+				nodesDown[node.RpcURL] = node.downSince
+			}
+		}
+
+		sequencers := make(map[string]SeqData)
+		for _, seq := range c.Sequencers {
+
+			stat := seq.statSeqData
+			if stat == nil {
+				stat = seq.statNewSeqData
+				if stat == nil {
+					continue
+				}
+			}
+			sequencers[seq.name] = *stat
+		}
+
+		b, e := json.Marshal(&savedState{
+			Alarms:     alarms,
+			Blocks:     blocks,
+			NodesDown:  nodesDown,
+			Sequencers: sequencers,
+		})
+		if e != nil {
+			log.Error(e)
+			return
+		}
+		_, _ = f.Write(b)
+		_ = f.Close()
+		log.Info("Metisian exiting.")
+	}
+	for {
+		select {
+		case <-c.Ctx.Done():
+			saveState()
+			return
+		case <-quitting:
+			saveState()
+			c.Cancel()
+			return
+		}
+	}
 }

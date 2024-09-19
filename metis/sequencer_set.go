@@ -16,6 +16,7 @@ type SequencerSetResponse struct {
 
 type SeqData struct {
 	Epoches []*Epoch `json:"epoches"`
+	IsNow   bool     `json:"is_now"`
 }
 
 type Epoch struct {
@@ -54,7 +55,11 @@ func (c *MetisianClient) monitorSequencerSet(ctx context.Context) {
 			return
 
 		case <-tick.C:
-			var err error
+			var (
+				err                error
+				currentBlockNumber int64
+			)
+			currentBlockNumber, _ = c.GetEthBlockNumber()
 			for _, seq := range c.GetSequencers() {
 				go func(s *Sequencer) {
 					req := graphql.NewRequest(`
@@ -108,8 +113,14 @@ query ($skip: Int, $first: Int, $address: String) {
 						epoch.ID = fmt.Sprintf("%d", epochIdDec)
 					}
 
-					s.statNewSeqData = &respData
+					if len(respData.Epoches) > 0 {
+						startBlockNumber, _ := strconv.ParseInt(respData.Epoches[0].StartBlock, 0, 64)
+						endBlockNumber, _ := strconv.ParseInt(respData.Epoches[0].EndBlock, 0, 64)
 
+						respData.IsNow = startBlockNumber < currentBlockNumber && currentBlockNumber < endBlockNumber
+					}
+
+					s.statNewSeqData = &respData
 				}(seq)
 			}
 

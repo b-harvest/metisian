@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	StateFile string
 	// What metisian watching
 	Sequencers []SequencerInfo `toml:"sequencers"`
 
@@ -27,7 +28,7 @@ type Config struct {
 	AlertIfNoServers bool `toml:"alert_if_no_servers"`
 
 	NodeInfos []NodeInfo `toml:"node_infos"`
-	ChainId   string     `toml:"chain_id"`
+	ChainId   string     `toml:"chain_id"` // sepolia-1, andromeda
 
 	// sequencer specific overrides for alert destinations.
 	// Pagerduty configuration values
@@ -120,7 +121,7 @@ type SequencerInfo struct {
 	Alerts AlertConfig `toml:"alerts"`
 }
 
-func LoadConfig(filePath, token string) (*Config, error) {
+func LoadConfig(filePath, token, stateFilePath string) (*Config, error) {
 
 	cfg := &Config{}
 	if strings.HasPrefix(filePath, "http://") || strings.HasPrefix(filePath, "https://") {
@@ -153,6 +154,8 @@ func LoadConfig(filePath, token string) (*Config, error) {
 			return nil, e
 		}
 	}
+
+	cfg.StateFile = stateFilePath
 
 	return cfg, nil
 }

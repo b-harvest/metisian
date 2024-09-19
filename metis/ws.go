@@ -105,7 +105,7 @@ func (c *MetisianClient) WsRun() {
 					seq := c.Sequencers[seqName]
 					update := result
 					if update.Final && update.Height%20 == 0 {
-						log.Info(fmt.Sprintf("🧊 block %d", update.Height))
+						log.Debug(fmt.Sprintf("🧊 block %d", update.Height))
 					}
 
 					if update.Status > signState {
@@ -154,9 +154,15 @@ func (c *MetisianClient) WsRun() {
 
 						seq.activeAlerts = alarms.getCount(seq.name)
 
-						var latestSelectedEpoch int64 = 0
+						var (
+							latestSelectedEpoch int64 = 0
+							isProducing               = false
+						)
 						if seq.statSeqData != nil && len(seq.statSeqData.Epoches) != 0 {
 							latestSelectedEpoch, _ = strconv.ParseInt(seq.statSeqData.Epoches[0].ID, 0, 64)
+						}
+						if seq.statSeqData != nil && seq.statSeqData.IsNow {
+							isProducing = true
 						}
 						if c.EnableDash {
 							log.Debug(fmt.Sprintf("Insert event for sequencer %20s (%s)", seq.name, seq.Address))
@@ -168,6 +174,7 @@ func (c *MetisianClient) WsRun() {
 								ActiveAlerts:        seq.activeAlerts,
 								LastError:           info,
 								LatestSelectedEpoch: latestSelectedEpoch,
+								IsProducing:         isProducing,
 								Blocks:              seq.blocksResults,
 							}
 						}

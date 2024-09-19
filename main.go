@@ -19,6 +19,7 @@ func init() {
 		configFilePath  string
 		configFileToken string
 		logLevel        string
+		stateFile       string
 
 		EnvConfigFilePath  = "CONFIG_FILE_PATH"
 		EnvConfigFileToken = "CONFIG_TOKEN"
@@ -33,6 +34,7 @@ func init() {
 		fmt.Sprintf("If you set this, it'll be use as Authorization Header with `Bearer $CONFIG_TOKEN`.\n"+
 			"you could also set this value with env %s.\n"+
 			"If both set, env value will be used.", EnvConfigFileToken))
+	flag.StringVar(&stateFile, "state", ".metisian-state.json", "file for storing state between restarts")
 	flag.StringVar(&logLevel, "log-level", "info", "log level you would show. (debug, info, warn, error...)")
 
 	flag.Parse()
@@ -50,7 +52,7 @@ func init() {
 	}
 	zerolog.SetGlobalLevel(l)
 
-	cfg, err = metis.LoadConfig(configFilePath, configFileToken)
+	cfg, err = metis.LoadConfig(configFilePath, configFileToken, stateFile)
 	if err != nil {
 		panic(err)
 	}
@@ -73,6 +75,9 @@ func main() {
 	}
 	log.Info(fmt.Sprintf("Starting monitor metis sequencers...\n%s", seqAddrsMsg))
 
+	saved := make(chan interface{})
+	client.SaveOnExit(cfg.StateFile, saved)
 	<-client.Ctx.Done()
+	<-saved
 
 }
