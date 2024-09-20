@@ -89,8 +89,8 @@ function legend() {
 
     offset += 90 * scale
     grad = ctx.createLinearGradient(offset, 0, offset+gridW, gridH)
-    grad.addColorStop(0, '#8e4b26');
-    grad.addColorStop(0.4, 'darkorange');
+    grad.addColorStop(0, '#fa9d9d');
+    // grad.addColorStop(0.4, 'darkorange');
     ctx.fillStyle = grad
     ctx.fillRect(offset, 0, gridW, gridH)
     ctx.beginPath();
@@ -202,7 +202,7 @@ const SignStatus = () => {
     const { statusData, setStatusData } = useSeqStatus(); 
   const [logs, setLogs] = useState([]);
   const logRef = useRef(null);
-  const HOST = import.meta.env.VITE_HOST? import.meta.env.VITE_HOST: "localhost:8888/"
+  const HOST = import.meta.env.VITE_API_HOST? import.meta.env.VITE_API_HOST: "localhost:8888/"
   const PROTOCOL = "http://"
 
   useEffect(() => {
@@ -212,6 +212,7 @@ const SignStatus = () => {
   useEffect(() => {
     UIkit.icon();
     loadState();
+    legend();
   }, []);
 
   const loadState = async () => {
