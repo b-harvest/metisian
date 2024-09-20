@@ -1,9 +1,17 @@
 FROM node:20
+
 WORKDIR /app
+
 COPY package.json .
-RUN npm install
+COPY package-lock.json .
+
+RUN rm -rf node_modules
+RUN npm i
+
 COPY . .
 
-EXPOSE 3000
+## EXPOSE [Port you mentioned in the vite.config file]
 
-CMD ["npm", "start"]
+EXPOSE 5173/tcp
+
+CMD ["npm", "run", "dev"]
