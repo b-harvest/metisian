@@ -11,6 +11,7 @@ import {
 import 'react-horizontal-scrolling-menu/dist/styles.css';
 import { Link } from "react-router-dom";
 import '../assets/styles/app.css'
+import mining from "../assets/images/mining.gif"
 
 import { Banner } from '../components/Banner'
 
@@ -70,20 +71,27 @@ function Dashboard() {
   
     const newEpochStat = [];
   
-    statusData.Status.forEach((item) => {
-      seqResourceData.forEach((resourceItem) => {
-        if (item.address === resourceItem.seq_addr.toLowerCase()) {
-          newEpochStat.push({
-            address: item.address,
-            avatar: resourceItem.avatar.replace("{BASEDIR}", SEPOLIA_SEQUENCER_RESOURCE_BASE),
-            id: item.latest_selected_epoch,
-            name: item.name,
-            desc: resourceItem.desc,
-            isProducing: item.is_producing
+    if (statusData && Array.isArray(statusData.Status)) {
+      statusData.Status.forEach((item) => {
+        const matchedResource = seqResourceData.find(resourceItem =>
+          item.address.toLowerCase() === resourceItem.seq_addr.toLowerCase()
+        );
+    
+        if (matchedResource && Array.isArray(item.epochs)) {
+          item.epochs.forEach((epoch) => {
+            newEpochStat.push({
+              address: item.address,
+              avatar: matchedResource.avatar.replace("{BASEDIR}", SEPOLIA_SEQUENCER_RESOURCE_BASE),
+              id: epoch,
+              name: item.name,
+              desc: matchedResource.desc,
+              isProducing: item.is_producing
+            });
           });
         }
       });
-    });
+    }
+    
   
     const statuses = [...newEpochStat].sort((a, b) => a.id - b.id);
     const fixedStatuses = [];
@@ -94,6 +102,8 @@ function Dashboard() {
       fixedStatuses.push({
         id: lastSeq.id + 1,
         address: "",
+        name: "Not Selected",
+        desc: "waiting for new sequencer...",
         notSelected: true
       });
     }
@@ -143,7 +153,7 @@ function Dashboard() {
               cover={
                 <img
                   alt={sortedStatus.length > 2 ?sortedStatus[sortedStatus.length - 3].address:""}
-                  src={sortedStatus.length > 2 ?sortedStatus[sortedStatus.length - 3].avatar:""}
+                  src={sortedStatus.length > 2 ?sortedStatus[sortedStatus.length - 3].avatar:null}
                   style={{ height: 270, objectFit: "cover", borderRadius: "50%"  }}
                 /> 
               }
@@ -152,7 +162,7 @@ function Dashboard() {
               <Meta 
               loading={sortedStatus.length > 2 ?null:"true"}
               title={sortedStatus.length > 2 ?sortedStatus[sortedStatus.length - 3].name:""} 
-              description={sortedStatus.length > 2 ?truncateText(sortedStatus[sortedStatus.length - 3].desc,80):""}/>
+              description={sortedStatus.length > 2 ?truncateText(sortedStatus[sortedStatus.length - 3].desc,50):""}/>
             </Card>
             </Link>
           </Col>
@@ -190,7 +200,7 @@ function Dashboard() {
               cover={
                 <img 
                   alt={sortedStatus.length > 1 ?sortedStatus[sortedStatus.length - 2].address:""} 
-                  src={sortedStatus.length > 1 ?sortedStatus[sortedStatus.length - 2].avatar:""} 
+                  src={sortedStatus.length > 1 ?sortedStatus[sortedStatus.length - 2].avatar:null} 
                   style={{ height: 300, objectFit: "cover", borderRadius: "50%"  }}
                 />
               }
@@ -227,16 +237,16 @@ function Dashboard() {
                   ""
                 )
               }
-              loading={sortedStatus.length > 0 && !sortedStatus[sortedStatus.length - 1].notSelected ?null:"true"}
+              loading={sortedStatus.length > 0 ?null:"true"}
               key={"next-seq"}
               hoverable
               style={{ width: 270, height: 450}}
               bordered={false}
-              cover={
+              cover={ 
                 <img
                   alt={sortedStatus.length > 0 ?sortedStatus[sortedStatus.length - 1].address:""}
-                  src={sortedStatus.length > 0 ?sortedStatus[sortedStatus.length - 1].avatar:""}
-                  style={{ height: 270, objectFit: "cover", borderRadius: "50%"  }}
+                  src={sortedStatus.length > 0 ?sortedStatus[sortedStatus.length - 1].avatar:null}
+                  style={{ height: 270, objectFit: "cover", borderRadius: "50%" }}
                 />
               }
               className="criclebox"
@@ -244,7 +254,7 @@ function Dashboard() {
               <Meta 
               loading={sortedStatus.length > 0 && !sortedStatus[sortedStatus.length - 1].notSelected ?null:"true"}
               title={sortedStatus.length > 0 ?sortedStatus[sortedStatus.length - 1].name:""} 
-              description={sortedStatus.length > 0 ?truncateText(sortedStatus[sortedStatus.length - 1].desc,80):""}/>
+              description={sortedStatus.length > 0 ?truncateText(sortedStatus[sortedStatus.length - 1].desc,50):""}/>
             </Card>
             </Link>
           </Col>
