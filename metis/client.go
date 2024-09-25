@@ -114,7 +114,7 @@ const SEPOLIA_SEQUENCER_SET_URL = "https://sepolia-subgraph.metisdevops.link/sub
 const SEPOLIA_L2_RPC_URL = "https://sepolia.metisdevops.link"
 
 const MAINNET_SEQUENCER_SET_URL = "https://andromeda-subgraph.metisdevops.link/subgraphs/name/metisio/sequencer-set"
-const MAINNET_L2_RPC_URL = "https://andromeda.metis.io/?owner=1088"
+const MAINNET_L2_RPC_URL = "https://andromeda.metis.io"
 
 func NewClient(cfg *Config) (*MetisianClient, error) {
 	var (
