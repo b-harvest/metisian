@@ -516,13 +516,13 @@ func (c *MetisianClient) watch() {
 			}
 
 			// recommited sequencer alarms:
-			if seq.statNewSeqData == nil {
+			if seq.statNewSeqData == nil || len(seq.statNewSeqData.Epoches) == 0 {
 				if seq.statSeqData != nil {
 					log.Debug(fmt.Sprintf("no epochs detected for this sequencer %20s (%s)", seq.name, seq.Address))
 				} // skipping
 
 			} else {
-				if seq.statSeqData == nil {
+				if seq.statSeqData == nil || len(seq.statSeqData.Epoches) == 0 {
 					seq.statSeqData = seq.statNewSeqData
 				} else {
 					changelog, err := diff.Diff(seq.statSeqData, seq.statNewSeqData)
