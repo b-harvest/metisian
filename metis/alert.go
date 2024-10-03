@@ -199,7 +199,7 @@ func buildSlackMessage(msg *alertMsg) *SlackMessage {
 		Text: msg.message,
 		Attachments: []Attachment{
 			{
-				Title: fmt.Sprintf("TenderDuty %s %s %s", prefix, msg.sequencer, msg.slkMentions),
+				Title: fmt.Sprintf("Metisian %s %s %s", prefix, msg.sequencer, msg.slkMentions),
 				Color: color,
 			},
 		},
@@ -263,7 +263,7 @@ func buildDiscordMessage(msg *alertMsg) *DiscordMessage {
 		prefix = "💜 Resolved: "
 	}
 	return &DiscordMessage{
-		Username: "Tenderduty",
+		Username: "Metisian",
 		Content:  prefix + msg.sequencer,
 		Embeds: []DiscordEmbed{{
 			Description: msg.message,
