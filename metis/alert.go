@@ -587,7 +587,7 @@ func (c *MetisianClient) watch() {
 										msg,
 										"info",
 										false,
-										false,
+										true,
 										&id)
 
 									c.alert(
@@ -595,7 +595,7 @@ func (c *MetisianClient) watch() {
 										msg,
 										"info",
 										true,
-										true,
+										false,
 										&id)
 									seq.activeAlerts = alarms.getCount(seq.name)
 								}
