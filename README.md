@@ -14,9 +14,13 @@ it checks following.
 - l2 commit(also recommit)
 
 
+### dashboard
 ```bash
-make build
+git clone https://github.com/b-harvest/metisian
 
+cd dashboard
+
+make build
 # export VITE_API_HOST="localhost"
 make run
 ```
