@@ -203,7 +203,7 @@ const SignStatus = () => {
   const [logs, setLogs] = useState([]);
   const logRef = useRef(null);
   const HOST = import.meta.env.VITE_API_HOST? import.meta.env.VITE_API_HOST: "localhost:8888/"
-  const PROTOCOL = "http://"
+  const PROTOCOL = "https://"
 
   useEffect(() => {
     connect();
@@ -393,7 +393,7 @@ const SignStatus = () => {
             </a>
         </Col>
         <li/>
-        <span>Forked by Tenderduty which developed by blockpane</span>
+        <span>Forked from Tenderduty which developed by blockpane</span>
       </div>
     </div>
   );

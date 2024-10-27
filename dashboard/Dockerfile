@@ -12,6 +12,8 @@ COPY . .
 
 ## EXPOSE [Port you mentioned in the vite.config file]
 
+LABEL org.opencontainers.image.source="https://github.com/b-harvest/metisian"
+
 EXPOSE 5173/tcp
 
 CMD ["npm", "run", "dev"]

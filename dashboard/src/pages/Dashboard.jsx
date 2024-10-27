@@ -52,7 +52,7 @@ function Dashboard() {
   }, [])
 
   const loadSeqResource = async () => {
-    const seqResource = await fetch(SEPOLIA_SEQUENCER_RESOURCE_BASE + ALL_ENDPOINT, {
+    const seqResource = await fetch(MAINNET_SEQUENCER_RESOURCE + ALL_ENDPOINT, {
       method: 'GET',
       mode: 'cors',
       cache: 'no-cache',
@@ -81,7 +81,7 @@ function Dashboard() {
           item.epochs.forEach((epoch) => {
             newEpochStat.push({
               address: item.address,
-              avatar: matchedResource.avatar.replace("{BASEDIR}", SEPOLIA_SEQUENCER_RESOURCE_BASE),
+              avatar: matchedResource.avatar.replace("{BASEDIR}", MAINNET_SEQUENCER_RESOURCE),
               id: epoch,
               name: item.name,
               desc: matchedResource.desc,
