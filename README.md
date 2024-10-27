@@ -12,3 +12,11 @@ Watching for sequencer's status throguh themis RPC, sequencer-set contract and s
 it checks following.
 - tendermint consensus
 - l2 commit(also recommit)
+
+
+```bash
+make build
+
+# export VITE_API_HOST="localhost"
+make run
+```
