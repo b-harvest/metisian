@@ -1,8 +1,8 @@
 # Metisian
 metis sequencer explorer.
 
-<img width="1728" alt="스크린샷 2024-09-20 오전 12 35 32" src="https://github.com/user-attachments/assets/7f5047f6-4278-4275-bf00-1d3a691448ce">
-<img width="1728" alt="스크린샷 2024-09-20 오전 12 52 35" src="https://github.com/user-attachments/assets/9348bcde-02da-4dab-a6ff-dffa5a7f5798">
+<img width="698" alt="screenshot 2024-11-09 am 12 41 56" src="https://github.com/user-attachments/assets/a48201ab-c8db-43a7-ada9-82fb18cf8fc5">
+
 
 
 
