@@ -21,6 +21,7 @@ type alertMsg struct {
 	disc bool
 	tg   bool
 	slk  bool
+	lark bool
 
 	severity  string
 	resolved  bool
@@ -38,6 +39,8 @@ type alertMsg struct {
 
 	slkHook     string
 	slkMentions string
+
+	larkHook string
 }
 
 type notifyDest uint8
@@ -206,6 +209,64 @@ func buildSlackMessage(msg *alertMsg) *SlackMessage {
 	}
 }
 
+func notifyLark(msg *alertMsg) (err error) {
+	if !msg.slk {
+		return
+	}
+	data, err := json.Marshal(buildLarkMessage(msg))
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", msg.larkHook, bytes.NewBuffer(data))
+	if err != nil {
+		return
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	_ = resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("could not notify slack for %s got %d response", msg.sequencer, resp.StatusCode)
+	}
+
+	return
+}
+
+// lark - sendMessage simple
+//{
+//	"msg_type": "text",
+//	"content": {
+//		"text": "'"$MESSAGE"'"
+//	}
+//}
+type LarkMessage struct {
+	MsgType string      `json:"msg_type"`
+	Content LarkContent `json:"content"`
+}
+
+type LarkContent struct {
+	Text string `json:"text"`
+}
+
+func buildLarkMessage(msg *alertMsg) *LarkMessage {
+	prefix := ""
+	if msg.resolved {
+		msg.message = "OK: " + msg.message
+		prefix = "💜 Resolved: "
+	}
+	return &LarkMessage{
+		MsgType: "text",
+		Content: LarkContent{
+			Text: fmt.Sprintf("Metisian %s %s", prefix, msg.sequencer),
+		},
+	}
+}
+
 func notifyDiscord(msg *alertMsg) (err error) {
 	if !msg.disc {
 		return nil
@@ -364,6 +425,7 @@ func (c *MetisianClient) alert(seqName, message, severity string, resolved, notS
 			disc:         seqAlert.Discord.Enabled,
 			tg:           seqAlert.Telegram.Enabled,
 			slk:          seqAlert.Slack.Enabled,
+			lark:         seqAlert.Lark.Enabled,
 			severity:     severity,
 			resolved:     resolved,
 			sequencer:    seqName,
@@ -376,6 +438,7 @@ func (c *MetisianClient) alert(seqName, message, severity string, resolved, notS
 			discHook:     seqAlert.Discord.Webhook,
 			discMentions: strings.Join(seqAlert.Discord.Mentions, " "),
 			slkHook:      seqAlert.Slack.Webhook,
+			larkHook:     seqAlert.Lark.Webhook,
 		}
 		c.alertChan <- a
 		c.seqMux.RUnlock()

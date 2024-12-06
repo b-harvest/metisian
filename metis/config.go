@@ -39,6 +39,8 @@ type Config struct {
 	Telegram TeleConfig `toml:"telegram"`
 	// Slack webhook information
 	Slack SlackConfig `toml:"slack"`
+	// LarkConfig webhook information
+	Lark LarkConfig `toml:"lark"`
 
 	// EnableDash enables the web dashboard
 	EnableDash bool `toml:"enable_dashboard"`
@@ -81,6 +83,8 @@ type AlertConfig struct {
 	Telegram TeleConfig `toml:"telegram"`
 	// Slack webhook information
 	Slack SlackConfig `toml:"slack"`
+	// LarkConfig webhook information
+	Lark LarkConfig `toml:"lark"`
 }
 
 // PDConfig is the information required to send alerts to PagerDuty
@@ -110,6 +114,12 @@ type SlackConfig struct {
 	Enabled  bool     `toml:"enabled"`
 	Webhook  string   `toml:"webhook"`
 	Mentions []string `toml:"mentions"`
+}
+
+// LarkConfig holds the information needed to publish to a Lark webhook for sending alerts
+type LarkConfig struct {
+	Enabled bool   `toml:"enabled"`
+	Webhook string `toml:"webhook"`
 }
 
 type SequencerInfo struct {

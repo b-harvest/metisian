@@ -147,6 +147,7 @@ func NewClient(cfg *Config) (*MetisianClient, error) {
 			seqInfo.Alerts.Discord = cfg.Discord
 			seqInfo.Alerts.Telegram = cfg.Telegram
 			seqInfo.Alerts.Slack = cfg.Slack
+			seqInfo.Alerts.Lark = cfg.Lark
 		}
 
 		seq := NewSequencer(seqInfo)
@@ -161,6 +162,7 @@ func NewClient(cfg *Config) (*MetisianClient, error) {
 				Discord:   cfg.Discord,
 				Telegram:  cfg.Telegram,
 				Slack:     cfg.Slack,
+				Lark:      cfg.Lark,
 			},
 		})
 	client.Sequencers[MetisianName] = &manager
@@ -239,6 +241,10 @@ func (c *MetisianClient) Run() {
 					e = notifySlack(msg)
 					if e != nil {
 						log.ErrorDynamicArgs(msg.sequencer, "error sending alert to slack", e.Error())
+					}
+					e = notifyLark(msg)
+					if e != nil {
+						log.ErrorDynamicArgs(msg.sequencer, "error sending alert to lark", e.Error())
 					}
 				}(alert)
 			case <-c.Ctx.Done():
