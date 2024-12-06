@@ -268,7 +268,7 @@ func buildLarkMessage(msg *alertMsg) *LarkMessage {
 	return &LarkMessage{
 		MsgType: "text",
 		Content: LarkContent{
-			Text: fmt.Sprintf("Metisian %s %s", prefix, msg.sequencer),
+			Text: fmt.Sprintf("Metisian %s %s\n%s", prefix, msg.sequencer, msg.message),
 		},
 	}
 }
