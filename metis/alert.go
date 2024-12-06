@@ -50,6 +50,7 @@ const (
 	tg
 	di
 	slk
+	lark
 )
 
 func (a *alarmCache) clearNoBlocks(seqeuncer string) {
@@ -89,6 +90,7 @@ var alarms = &alarmCache{
 	SentTgAlarms:   make(map[string]time.Time),
 	SentDiAlarms:   make(map[string]time.Time),
 	SentSlkAlarms:  make(map[string]time.Time),
+	SentLarkAlarms: make(map[string]time.Time),
 	AllAlarms:      make(map[string]map[string]time.Time),
 	flappingAlarms: make(map[string]map[string]time.Time),
 	notifyMux:      sync.RWMutex{},
@@ -115,6 +117,9 @@ func shouldNotify(msg *alertMsg, dest notifyDest) bool {
 	case slk:
 		whichMap = alarms.SentSlkAlarms
 		service = "Slack"
+	case lark:
+		whichMap = alarms.SentLarkAlarms
+		service = "Lark"
 	}
 
 	switch {

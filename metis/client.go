@@ -98,6 +98,7 @@ type alarmCache struct {
 	SentTgAlarms   map[string]time.Time            `json:"sent_tg_alarms"`
 	SentDiAlarms   map[string]time.Time            `json:"sent_di_alarms"`
 	SentSlkAlarms  map[string]time.Time            `json:"sent_slk_alarms"`
+	SentLarkAlarms map[string]time.Time            `json:"sent_lark_alarms"`
 	AllAlarms      map[string]map[string]time.Time `json:"sent_all_alarms"`
 	flappingAlarms map[string]map[string]time.Time
 	notifyMux      sync.RWMutex
