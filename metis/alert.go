@@ -210,7 +210,7 @@ func buildSlackMessage(msg *alertMsg) *SlackMessage {
 }
 
 func notifyLark(msg *alertMsg) (err error) {
-	if !msg.slk {
+	if !msg.lark {
 		return
 	}
 	data, err := json.Marshal(buildLarkMessage(msg))
@@ -238,12 +238,13 @@ func notifyLark(msg *alertMsg) (err error) {
 }
 
 // lark - sendMessage simple
-//{
-//	"msg_type": "text",
-//	"content": {
-//		"text": "'"$MESSAGE"'"
+//
+//	{
+//		"msg_type": "text",
+//		"content": {
+//			"text": "'"$MESSAGE"'"
+//		}
 //	}
-//}
 type LarkMessage struct {
 	MsgType string      `json:"msg_type"`
 	Content LarkContent `json:"content"`
