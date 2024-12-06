@@ -159,6 +159,9 @@ func notifySlack(msg *alertMsg) (err error) {
 	if !msg.slk {
 		return
 	}
+	if !shouldNotify(msg, slk) {
+		return nil
+	}
 	data, err := json.Marshal(buildSlackMessage(msg))
 	if err != nil {
 		return
@@ -217,6 +220,9 @@ func buildSlackMessage(msg *alertMsg) *SlackMessage {
 func notifyLark(msg *alertMsg) (err error) {
 	if !msg.lark {
 		return
+	}
+	if !shouldNotify(msg, lark) {
+		return nil
 	}
 	data, err := json.Marshal(buildLarkMessage(msg))
 	if err != nil {
