@@ -1,9 +1,10 @@
-IMAGE_NAME = ghcr.io/b-harvest/metisian
-TAG = latest
-PLATFORM = linux/amd64
-VITE_API_HOST = localhost
+IMAGE_NAME ?= ghcr.io/b-harvest/metisian
+TAG ?= latest
+PLATFORM ?= linux/amd64
+VITE_API_HOST ?= localhost
 
 build:
+	VITE_API_HOST=$(VITE_API_HOST) npm run build
 	docker buildx build --platform=$(PLATFORM) -t $(IMAGE_NAME):$(TAG) --push .
 
 run:

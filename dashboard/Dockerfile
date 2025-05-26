@@ -1,19 +1,12 @@
-FROM node:20
+FROM node:23-alpine AS runner
 
-WORKDIR /app
+WORKDIR /home/node/app
 
-COPY package.json .
-COPY package-lock.json .
+COPY --chown=node:node ./dist ./dist
 
-RUN rm -rf node_modules
-RUN npm i
+RUN npm install -g serve
 
-COPY . .
+USER node
 
-## EXPOSE [Port you mentioned in the vite.config file]
-
-LABEL org.opencontainers.image.source="https://github.com/b-harvest/metisian"
-
-EXPOSE 5173/tcp
-
-CMD ["npm", "run", "dev"]
+EXPOSE 3000
+CMD ["serve", "-s", "dist", "-l", "3000"]

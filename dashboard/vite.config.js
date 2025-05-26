@@ -15,6 +15,10 @@ export default ({ mode }) => {
       },
       extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
     },
+    base: "./",
+    build: {
+      outDir: "dist"
+    },
     server: {
       port: 5173,
       host: "0.0.0.0"
